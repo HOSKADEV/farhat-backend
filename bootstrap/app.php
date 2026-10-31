@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureApiKeyIsValid;
 use App\Http\Middleware\EnsureTokenMatchesClientType;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\EnsureUserIsAdminOrManager;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->append(EnsureApiKeyIsValid::class);
         $middleware->validateCsrfTokens(except: ['v1/*']);
         $middleware->appendToGroup('api', SetLocaleFromHeader::class);
         $middleware->statefulApi();
