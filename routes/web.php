@@ -59,7 +59,7 @@ Route::get('/docs', function () {
 Route::get('/import', [ImportController::class, 'show']);
 Route::post('/import', [ImportController::class, 'store']);
 
-Route::prefix('v1')->group(function () {
+Route::prefix('v1')->middleware('api.key')->group(function () {
 
     Route::prefix('auth')->group(function () {
         Route::post('login', [AuthController::class, 'login'])->middleware('guest');

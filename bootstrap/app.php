@@ -19,11 +19,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->append(EnsureApiKeyIsValid::class);
         $middleware->validateCsrfTokens(except: ['v1/*']);
         $middleware->appendToGroup('api', SetLocaleFromHeader::class);
         $middleware->statefulApi();
         $middleware->alias([
+            'api.key'     => EnsureApiKeyIsValid::class,
             'client.type' => EnsureTokenMatchesClientType::class,
             'user.active' => EnsureUserIsActive::class,
             'user.role'   => EnsureUserIsAdminOrManager::class,
