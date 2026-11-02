@@ -1,6 +1,6 @@
 opencollection: 1.0.0
 info:
-  name: Rakime
+  name: Farhat ERP API
 config:
   proxy:
     inherit: true
@@ -16,7 +16,7 @@ config:
     - name: api
       variables:
         - name: url
-          value: https://test.rakimerp.com/api
+          value: https://test.erpfarhat.com/api
         - name: token
           value: 29|G1NjA0LtcHr0y88wZxgoex8uVXRnTu86NXFajxnib1fdfbe2
         - name: client_type
@@ -32,7 +32,7 @@ config:
     - name: test
       variables:
         - name: url
-          value: https://test.rakimerp.com
+          value: https://test.erpfarhat.com
         - name: token
           value: 49|7En9J0Uso8MXMLcD8RpXe1H2kJuft70BElAJkGMO8f7af4a7
         - name: client_type
@@ -40,7 +40,7 @@ config:
     - name: web
       variables:
         - name: url
-          value: https://rakimerp.com
+          value: https://erpfarhat.com
         - name: token
           value: 52|K5s8SozhPadh98aKZflMNeu24Vk2LhqMCzyPFw1Qa61e61a0
         - name: client_type

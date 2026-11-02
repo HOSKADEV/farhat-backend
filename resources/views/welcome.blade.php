@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>{{ config('app.name', 'Rakime') }}</title>
+        <title>{{ config('app.name', 'Farhat ERP') }}</title>
         <style>
             *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -84,7 +84,7 @@
         <div class="container">
             <div class="badge">REST API</div>
 
-            <h1><span>Rakime</span></h1>
+            <h1><span>Farhat ERP</span></h1>
 
             <p>
                 A comprehensive backend API for managing sales, installment contracts,

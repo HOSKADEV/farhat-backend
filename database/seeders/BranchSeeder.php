@@ -17,14 +17,14 @@ class BranchSeeder extends Seeder
             [
                 'name'      => 'Main Branch',
                 'code'      => 'M',
-                'shop_name' => 'Rakime Main Store',
+                'shop_name' => 'Farhat Main Store',
                 'address'   => '123 Main Street, City Center',
                 'phone'     => '+213 123 456 789',
             ],
             [
                 'name'      => 'Second Branch',
                 'code'      => 'S',
-                'shop_name' => 'Rakime Second Store',
+                'shop_name' => 'Farhat Second Store',
                 'address'   => '456 Second Avenue, Downtown',
                 'phone'     => '+213 987 654 321',
             ],

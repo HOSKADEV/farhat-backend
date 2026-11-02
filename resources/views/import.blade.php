@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Import — ' . config('app.name', 'Rakime'))
+@section('title', 'Import — ' . config('app.name', 'Farhat ERP'))
 
 @section('content')
     <div class="mx-auto max-w-5xl px-6 py-12">
