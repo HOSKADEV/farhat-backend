@@ -12,8 +12,9 @@ class EnsureApiKeyIsValid
     {
         $expected = config('api.key');
 
+        // If no API key is configured, skip validation and allow the request.
         if (! is_string($expected) || $expected === '') {
-            abort(500, 'API key is not configured.');
+            return $next($request);
         }
 
         $provided = (string) $request->header('X-Api-Key', '');
