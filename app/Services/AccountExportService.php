@@ -201,10 +201,23 @@ class AccountExportService
     {
         $headers = $this->getHeaders();
 
-        return array_map(
-            fn (array $row) => array_combine($headers, $row),
-            $this->buildRows($account, $subscriptions),
-        );
+        return array_map(function (array $row) use ($headers) {
+            $data = array_combine($headers, $row);
+
+            foreach (['DateDebut', 'DateFin', 'DateCeation'] as $column) {
+                $data[$column] = $this->formatDate($data[$column]);
+            }
+
+            return $data;
+        }, $this->buildRows($account, $subscriptions));
+    }
+
+    /**
+     * Format a date value as "Y-m-d" (date only, no time) for JSON output.
+     */
+    private function formatDate(mixed $value): mixed
+    {
+        return $value instanceof \DateTimeInterface ? $value->format('Y-m-d') : $value;
     }
 
     /**
