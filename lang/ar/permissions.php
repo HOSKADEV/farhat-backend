@@ -98,6 +98,9 @@ return [
     'export_registrations' => 'تصدير التسجيلات',
     'export_cancelations' => 'تصدير الإلغاءات',
 
+    // سجل النشاط
+    'view_logs' => 'عرض السجلات',
+
     // السجلات المالية
     'view_financial_records'   => 'عرض السجلات المالية',
     'create_financial_records' => 'إنشاء السجلات المالية',

@@ -213,6 +213,9 @@ enum Permission: string
     // Draws
     case VIEW_DRAWS = 'draws.view';
 
+    // Logs
+    case VIEW_LOGS = 'logs.view';
+
     // Financial Records
     case VIEW_FINANCIAL_RECORDS   = 'financial_records.view';
     case CREATE_FINANCIAL_RECORDS = 'financial_records.create';

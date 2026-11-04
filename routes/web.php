@@ -11,6 +11,7 @@ use App\Http\Controllers\Web\Stats\SaleStatsController;
 use App\Http\Controllers\Web\Stats\StatsController;
 use App\Http\Controllers\Web\AccountController;
 use App\Http\Controllers\Web\AccountDrawLockController;
+use App\Http\Controllers\Web\ActivityLogController;
 use App\Http\Controllers\Web\Auth\AuthController;
 use App\Http\Controllers\Web\BatchController;
 use App\Http\Controllers\Web\BranchController;
@@ -167,6 +168,8 @@ Route::prefix('v1')->middleware('api.key')->group(function () {
         Route::post('financial-records', [FinancialRecordController::class, 'store']);
         Route::put('financial-records/{financial_record}', [FinancialRecordController::class, 'update']);
         Route::delete('financial-records/{financial_record}', [FinancialRecordController::class, 'destroy']);
+
+        Route::get('logs', [ActivityLogController::class, 'index']);
 
     });
 });

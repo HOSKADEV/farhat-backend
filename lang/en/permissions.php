@@ -98,6 +98,9 @@ return [
     'export_registrations' => 'Export Registrations',
     'export_cancelations' => 'Export Cancelations',
 
+    // Logs
+    'view_logs' => 'View Logs',
+
     // Financial Records
     'view_financial_records'   => 'View Financial Records',
     'create_financial_records' => 'Create Financial Records',

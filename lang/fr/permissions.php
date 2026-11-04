@@ -98,6 +98,9 @@ return [
     'export_registrations' => 'Exporter les inscriptions',
     'export_cancelations' => 'Exporter les annulations',
 
+    // Journal d'activité
+    'view_logs' => 'Voir les journaux',
+
     // Relevés financiers
     'view_financial_records'   => 'Voir les relevés financiers',
     'create_financial_records' => 'Créer des relevés financiers',
