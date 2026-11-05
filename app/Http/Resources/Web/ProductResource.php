@@ -11,19 +11,19 @@ class ProductResource extends JsonResource
     {
         return [
             'id'           => $this->id,
-            'type'         => $this->whenLoaded('type', fn () => [
+            'type'         => $this->whenLoaded('type', fn () => $this->type ? [
                 'id'   => $this->type->id,
                 'name' => $this->type->name,
-            ]),
-            'color'        => $this->whenLoaded('color', fn () => [
+            ] : null),
+            'color'        => $this->whenLoaded('color', fn () => $this->color ? [
                 'id'   => $this->color->id,
                 'name' => $this->color->name,
                 'code' => $this->color->code,
-            ]),
-            'brand'        => $this->whenLoaded('brand', fn () => [
+            ] : null),
+            'brand'        => $this->whenLoaded('brand', fn () => $this->brand ? [
                 'id'   => $this->brand->id,
                 'name' => $this->brand->name,
-            ]),
+            ] : null),
             'name'         => $this->name,
             'barcode'      => $this->barcode,
             'image'        => $this->getFirstMediaUrl('image') ?: ($this->image ?: null),

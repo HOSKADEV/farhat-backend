@@ -46,13 +46,13 @@ class ProductService
     public function create(array $data, Request $request): Product
     {
         $product = Product::create([
-            'type_id'      => $data['type_id'],
-            'color_id'     => $data['color_id'],
-            'brand_id'     => $data['brand_id'],
+            'type_id'      => $data['type_id'] ?? null,
+            'color_id'     => $data['color_id'] ?? null,
+            'brand_id'     => $data['brand_id'] ?? null,
             'name'         => $data['name'],
             'barcode'      => $data['barcode'] ?? null,
             'image'        => '',
-            'min_quantity' => $data['min_quantity'],
+            'min_quantity' => $data['min_quantity'] ?? null,
         ]);
 
         if ($request->hasFile('image')) {
@@ -70,14 +70,14 @@ class ProductService
 
     public function update(Product $product, array $data, Request $request): Product
     {
-        $product->update(array_filter([
-            'type_id'      => $data['type_id'] ?? null,
-            'color_id'     => $data['color_id'] ?? null,
-            'brand_id'     => $data['brand_id'] ?? null,
-            'name'         => $data['name'] ?? null,
-            'barcode'      => array_key_exists('barcode', $data) ? $data['barcode'] : null,
-            'min_quantity' => $data['min_quantity'] ?? null,
-        ], fn ($v) => $v !== null));
+        $product->update(array_intersect_key($data, array_flip([
+            'type_id',
+            'color_id',
+            'brand_id',
+            'name',
+            'barcode',
+            'min_quantity',
+        ])));
 
         if ($request->hasFile('image')) {
             $product->clearMediaCollection('image');
