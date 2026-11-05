@@ -9,18 +9,7 @@ class BrandSeeder extends Seeder
 {
     public function run(): void
     {
-        $brands = [
-            'Samsung',
-            'LG',
-            'Condor',
-            'Brandt',
-            'Iris',
-            'Beko',
-            'Bosch',
-            'Whirlpool',
-            'Hisense',
-            'Haier',
-        ];
+        $brands = [];
 
         foreach ($brands as $name) {
             Brand::firstOrCreate(['name' => $name]);
