@@ -27,7 +27,7 @@ class AccountExportService
     {
         $subscriptions = $this->getRegistrations($account, $date, $branchIds);
 
-        $filename = 'account-' . $account->id . '-subscriptions-' . now()->format('Ymd-His') . '.xls';
+        $filename = $this->buildFilename($account, $date, 'PRELEVEMENTS');
 
         return $this->buildSpreadsheet($account, $subscriptions, $filename);
     }
@@ -48,7 +48,7 @@ class AccountExportService
     {
         $subscriptions = $this->getCancellations($account, $date, $branchIds);
 
-        $filename = 'account-' . $account->id . '-cancellations-' . now()->format('Ymd-His') . '.xls';
+        $filename = $this->buildFilename($account, $date, 'ANNULATIONS');
 
         return $this->buildSpreadsheet($account, $subscriptions, $filename);
     }
@@ -201,10 +201,23 @@ class AccountExportService
     {
         $headers = $this->getHeaders();
 
-        return array_map(
-            fn (array $row) => array_combine($headers, $row),
-            $this->buildRows($account, $subscriptions),
-        );
+        return array_map(function (array $row) use ($headers) {
+            $data = array_combine($headers, $row);
+
+            foreach (['DateDebut', 'DateFin', 'DateCeation'] as $column) {
+                $data[$column] = $this->formatDate($data[$column]);
+            }
+
+            return $data;
+        }, $this->buildRows($account, $subscriptions));
+    }
+
+    /**
+     * Format a date value as "Y-m-d" (date only, no time) for JSON output.
+     */
+    private function formatDate(mixed $value): mixed
+    {
+        return $value instanceof \DateTimeInterface ? $value->format('Y-m-d') : $value;
     }
 
     /**
@@ -350,5 +363,37 @@ class AccountExportService
         $day = min($account->draw_day, $month->daysInMonth);
 
         return $month->copy()->addDays($day - 1);
+    }
+
+    /**
+     * Build the export filename: {TYPE} {date} {account name} {ccp number}.
+     */
+    private function buildFilename(Account $account, ?string $date, string $type): string
+    {
+        return sprintf(
+            '%s %s %s %s.xls',
+            $type,
+            $this->resolveFilenameDate($account, $date)->format('d-m-Y'),
+            $account->name,
+            $account->ccp_number,
+        );
+    }
+
+    /**
+     * Resolve the date used in the filename for the given "Y-m" month.
+     *
+     * The day is derived from the account's draw day. When no month is given,
+     * the next draw date after the account's last lock is used.
+     */
+    private function resolveFilenameDate(Account $account, ?string $date): Carbon
+    {
+        if ($date !== null) {
+            $month = Carbon::parse($date)->startOfMonth();
+            $day   = min($account->draw_day, $month->daysInMonth);
+
+            return $month->copy()->addDays($day - 1);
+        }
+
+        return $this->resolveTargetDrawDate($account);
     }
 }
