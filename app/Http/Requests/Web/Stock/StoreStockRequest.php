@@ -24,6 +24,7 @@ class StoreStockRequest extends FormRequest
         return [
             'inventory_id'           => ['required', 'integer', 'exists:inventories,id'],
             'product_id'             => ['required', 'integer', 'exists:products,id'],
+            'unit_id'                => ['required', 'integer', 'exists:units,id'],
             'source_id'              => ['nullable', 'integer'],
             'source_type'            => ['nullable', 'string'],
             'initial_quantity'       => ['nullable', 'integer', 'min:0'],

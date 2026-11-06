@@ -11,6 +11,7 @@ use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\Restock;
 use App\Models\Stock;
+use App\Models\Unit;
 use Exception;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
@@ -185,8 +186,11 @@ class PurchaseService
             // Index optional per-item pricing overrides by product_id
             $pricingByProduct = collect($data['items'] ?? [])->keyBy('product_id');
 
+            // Purchases carry no unit yet, so items are booked into the default unit.
+            $unitId = Unit::defaultId();
+
             // Validate prices before processing
-            $this->validatePrices($purchase, $inventoryId, $pricingByProduct);
+            $this->validatePrices($purchase, $inventoryId, $pricingByProduct, $unitId);
 
             // If this purchase was created from a restock, load the restock to update fulfilled quantities
             $restock = Restock::where('fulfilled_with_id', $purchase->id)
@@ -199,6 +203,7 @@ class PurchaseService
                 $stock = Stock::firstOrCreate([
                     'inventory_id' => $inventoryId,
                     'product_id' => $item->product_id,
+                    'unit_id' => $unitId,
                 ]);
 
                 $oldQuantity = $stock->batches()->sum('current_quantity');
@@ -254,7 +259,12 @@ class PurchaseService
         });
     }
 
-    private function validatePrices(Purchase $purchase, int $inventoryId, \Illuminate\Support\Collection $pricingByProduct): void
+    private function validatePrices(
+        Purchase $purchase,
+        int $inventoryId,
+        \Illuminate\Support\Collection $pricingByProduct,
+        int $unitId,
+    ): void
     {
         if ($pricingByProduct->isEmpty()) {
             return;
@@ -262,6 +272,7 @@ class PurchaseService
 
         // Fetch max old-batch purchase prices in a single query, keyed by product_id
         $maxOldBatchPrices = Stock::where('inventory_id', $inventoryId)
+            ->where('unit_id', $unitId)
             ->whereIn('product_id', $pricingByProduct->keys())
             ->join('batches', 'stocks.id', '=', 'batches.stock_id')
             ->where('batches.current_quantity', '>', 0)

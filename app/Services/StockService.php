@@ -17,7 +17,7 @@ class StockService
     {
         return QueryBuilder::for(Stock::class, $request)
             ->with([
-                'inventory', 'product',
+                'inventory', 'product', 'unit',
                 'batches', 'prices',
                 'sellingPrice', 'installmentPrice', 'wholesalePrice',
                 'currentQuantity', 'initialQuantity',
@@ -25,6 +25,7 @@ class StockService
             ->allowedFilters(
                 AllowedFilter::exact('inventory_id'),
                 AllowedFilter::exact('product_id'),
+                AllowedFilter::exact('unit_id'),
                 AllowedFilter::callback('branch_id', function ($query, $value) {
                     $query->whereHas('inventory', fn ($q) => $q->where('branch_id', $value));
                 }),
@@ -79,6 +80,7 @@ class StockService
         $stock = Stock::firstOrCreate([
             'inventory_id' => $data['inventory_id'],
             'product_id'   => $data['product_id'],
+            'unit_id'      => $data['unit_id'],
         ]);
 
         if (isset($data['selling_prices']) || isset($data['installment_prices']) || isset($data['wholesale_prices']) || isset($data['purchase_price'])) {
@@ -130,7 +132,7 @@ class StockService
         }
 
         return $stock->load([
-            'inventory', 'product', 'batches', 'prices',
+            'inventory', 'product', 'unit', 'batches', 'prices',
             'sellingPrice', 'installmentPrice', 'wholesalePrice',
             'currentQuantity', 'initialQuantity',
         ]);
@@ -139,7 +141,7 @@ class StockService
     public function show(Stock $stock): Stock
     {
         return $stock->loadMissing([
-            'inventory', 'product', 'batches', 'prices',
+            'inventory', 'product', 'unit', 'batches', 'prices',
             'sellingPrice', 'installmentPrice', 'wholesalePrice',
             'currentQuantity', 'initialQuantity',
         ]);

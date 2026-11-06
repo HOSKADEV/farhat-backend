@@ -14,6 +14,7 @@ use App\Models\PurchaseItem;
 use App\Models\Restock;
 use App\Models\RestockItem;
 use App\Models\Stock;
+use App\Models\Unit;
 use Exception;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
@@ -251,12 +252,16 @@ class RestockService
 
         $fromInventoryId = $data['from_inventory_id'];
 
+        // Restocks carry no unit yet, so they resolve the default unit's stock.
+        $unitId = Unit::defaultId();
+
         // Validate that source inventory has enough stock for all requested items
         foreach ($restock->items as $restockItem) {
             $quantity = $restockItem->requested_quantity;
 
             $fromStock = Stock::where('inventory_id', $fromInventoryId)
                 ->where('product_id', $restockItem->product_id)
+                ->where('unit_id', $unitId)
                 ->first();
 
             $available = $fromStock ? $fromStock->batches()->sum('current_quantity') : 0;
@@ -285,6 +290,7 @@ class RestockService
 
             $fromStock = Stock::where('inventory_id', $fromInventoryId)
                 ->where('product_id', $restockItem->product_id)
+                ->where('unit_id', $unitId)
                 ->first();
 
             // Create transfer item referencing the source stock

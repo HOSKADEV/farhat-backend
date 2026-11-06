@@ -100,6 +100,11 @@ enum Role: string
                 Permission::CREATE_COLORS->value,
                 Permission::UPDATE_COLORS->value,
                 Permission::DELETE_COLORS->value,
+                // Units
+                Permission::VIEW_UNITS->value,
+                Permission::CREATE_UNITS->value,
+                Permission::UPDATE_UNITS->value,
+                Permission::DELETE_UNITS->value,
                 // Products
                 Permission::VIEW_PRODUCTS->value,
                 Permission::CREATE_PRODUCTS->value,
@@ -226,6 +231,7 @@ enum Role: string
                 Permission::VIEW_TYPES->value,
                 Permission::VIEW_BRANDS->value,
                 Permission::VIEW_COLORS->value,
+                Permission::VIEW_UNITS->value,
                 Permission::VIEW_SUPPLIERS->value,
                 // Products
                 Permission::VIEW_PRODUCTS->value,

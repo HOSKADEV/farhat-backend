@@ -61,6 +61,12 @@ enum Permission: string
     case UPDATE_COLORS = 'colors.update';
     case DELETE_COLORS = 'colors.delete';
 
+    // Units
+    case VIEW_UNITS   = 'units.view';
+    case CREATE_UNITS = 'units.create';
+    case UPDATE_UNITS = 'units.update';
+    case DELETE_UNITS = 'units.delete';
+
     // Products
     case VIEW_PRODUCTS   = 'products.view';
     case CREATE_PRODUCTS = 'products.create';

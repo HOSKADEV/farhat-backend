@@ -42,6 +42,7 @@ use App\Http\Controllers\Web\StockController;
 use App\Http\Controllers\Web\SubscriptionController;
 use App\Http\Controllers\Web\SupplierController;
 use App\Http\Controllers\Web\TypeController;
+use App\Http\Controllers\Web\UnitController;
 use App\Http\Controllers\Web\UserController;
 use App\Http\Controllers\Web\WalletController;
 use App\Http\Controllers\Web\WalletMovementController;
@@ -107,6 +108,7 @@ Route::prefix('v1')->middleware('api.key')->group(function () {
         Route::apiResource('brands', BrandController::class);
         Route::apiResource('types', TypeController::class);
         Route::apiResource('colors', ColorController::class);
+        Route::apiResource('units', UnitController::class);
         Route::get('clients/delinquent', [ClientController::class, 'delinquent']);
         Route::get('clients/find/{keyword}', [ClientController::class, 'find']);
         Route::post('clients/{client}/documents', [ClientController::class, 'storeDocument']);

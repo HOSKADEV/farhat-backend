@@ -261,6 +261,17 @@ Table colors {
   updated_at timestamp
 }
 
+Table units {
+  id         bigint    [pk, increment]
+  name       varchar   [unique]
+  symbol     varchar   [unique, note: "max 20 chars"]
+  is_default boolean   [default: false]
+  created_by bigint    [null, ref: > users.id]
+  updated_by bigint    [null, ref: > users.id]
+  created_at timestamp
+  updated_at timestamp
+}
+
 Table products {
   id           bigint    [pk, increment]
   type_id      bigint    [ref: > types.id]
@@ -336,6 +347,12 @@ Table stocks {
   id           bigint    [pk, increment]
   inventory_id bigint    [ref: > inventories.id]
   product_id   bigint    [ref: > products.id]
+  unit_id      bigint    [ref: > units.id]
+
+  indexes {
+    (inventory_id, product_id, unit_id) [unique]
+  }
+
   created_by   bigint    [null, ref: > users.id]
   updated_by   bigint    [null, ref: > users.id]
   created_at   timestamp

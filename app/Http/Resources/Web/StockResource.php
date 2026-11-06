@@ -18,6 +18,7 @@ class StockResource extends JsonResource
             'id'           => $this->id,
             'inventory_id' => $this->inventory_id,
             'product_id'   => $this->product_id,
+            'unit_id'      => $this->unit_id,
             'created_at'   => $this->created_at,
             'updated_at'   => $this->updated_at,
             'created_by'   => new AvatarResource($this->whenLoaded('creator')),
@@ -37,6 +38,7 @@ class StockResource extends JsonResource
 
             'inventory' => new InventoryResource($this->whenLoaded('inventory')),
             'product'   => new ProductResource($this->whenLoaded('product')),
+            'unit'      => new UnitResource($this->whenLoaded('unit')),
             'batches'   => BatchResource::collection($this->whenLoaded('batches')),
             'prices'    => PriceResource::collection($this->whenLoaded('prices')),
         ];

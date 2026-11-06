@@ -205,6 +205,7 @@ class InventoryTransferService
                 $toStock = Stock::firstOrCreate([
                     'inventory_id' => $transfer->to_inventory_id,
                     'product_id'   => $transferItem->stock->product_id,
+                    'unit_id'      => $transferItem->stock->unit_id,
                 ]);
 
                 $oldQuantity = $toStock->batches()->sum('current_quantity');
