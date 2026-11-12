@@ -57,7 +57,7 @@ class BatchService
             'current_quantity' => $data['current_quantity'] ?? $data['initial_quantity'],
         ]);
 
-        $quantity = (int) $batch->current_quantity;
+        $quantity = round((float) $batch->current_quantity, 2);
 
         if ($quantity > 0) {
             app(InventoryService::class)->manual(
@@ -88,7 +88,7 @@ class BatchService
         $stock = $batch->stock;
 
         $oldStockQuantity = $this->stockCurrentQuantity($stock);
-        $oldQuantity      = (int) $batch->current_quantity;
+        $oldQuantity      = round((float) $batch->current_quantity, 2);
 
         $batch->update(array_filter([
             'source_id'        => $data['source_id'] ?? null,
@@ -100,8 +100,8 @@ class BatchService
 
         $batch->refresh();
 
-        $newQuantity = (int) $batch->current_quantity;
-        $difference  = $newQuantity - $oldQuantity;
+        $newQuantity = round((float) $batch->current_quantity, 2);
+        $difference  = round($newQuantity - $oldQuantity, 2);
 
         if ($difference !== 0) {
             app(InventoryService::class)->manual(
@@ -122,9 +122,9 @@ class BatchService
         return $batch;
     }
 
-    private function stockCurrentQuantity(Stock $stock): int
+    private function stockCurrentQuantity(Stock $stock): float
     {
-        return (int) $stock->batches()->sum('current_quantity');
+        return round((float) $stock->batches()->sum('current_quantity'), 2);
     }
 
     public function delete(Batch $batch): void

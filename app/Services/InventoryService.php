@@ -84,8 +84,8 @@ class InventoryService
         int $stockId,
         int $inventoryId,
         int $productId,
-        int $oldQuantity,
-        int $quantity,
+        float $oldQuantity,
+        float $quantity,
         ?Model $source = null,
         array $allocations = [],
     ): InventoryMovement {
@@ -108,8 +108,8 @@ class InventoryService
         int $stockId,
         int $inventoryId,
         int $productId,
-        int $oldQuantity,
-        int $quantity,
+        float $oldQuantity,
+        float $quantity,
         ?Model $source = null,
         array $allocations = [],
     ): InventoryMovement {
@@ -132,8 +132,8 @@ class InventoryService
         int $stockId,
         int $inventoryId,
         int $productId,
-        int $oldQuantity,
-        int $quantity,
+        float $oldQuantity,
+        float $quantity,
         ?Model $source = null,
         array $allocations = [],
     ): InventoryMovement {
@@ -156,8 +156,8 @@ class InventoryService
         int $stockId,
         int $inventoryId,
         int $productId,
-        int $oldQuantity,
-        int $quantity,
+        float $oldQuantity,
+        float $quantity,
         ?Model $source = null,
         array $allocations = [],
     ): InventoryMovement {
@@ -180,8 +180,8 @@ class InventoryService
         int $stockId,
         int $inventoryId,
         int $productId,
-        int $oldQuantity,
-        int $quantity,
+        float $oldQuantity,
+        float $quantity,
         ?Model $source = null,
         array $allocations = [],
     ): InventoryMovement {
@@ -204,8 +204,8 @@ class InventoryService
         int $stockId,
         int $inventoryId,
         int $productId,
-        int $oldQuantity,
-        int $quantity,
+        float $oldQuantity,
+        float $quantity,
         ?Model $source = null,
         array $allocations = [],
     ): InventoryMovement {
@@ -228,8 +228,8 @@ class InventoryService
         int $stockId,
         int $inventoryId,
         int $productId,
-        int $oldQuantity,
-        int $quantity,
+        float $oldQuantity,
+        float $quantity,
         ?Model $source = null,
         array $allocations = [],
     ): InventoryMovement {
@@ -252,8 +252,8 @@ class InventoryService
         int $stockId,
         int $inventoryId,
         int $productId,
-        int $oldQuantity,
-        int $quantity,
+        float $oldQuantity,
+        float $quantity,
         ?Model $source = null,
         array $allocations = [],
     ): InventoryMovement {
@@ -276,8 +276,8 @@ class InventoryService
         int $stockId,
         int $inventoryId,
         int $productId,
-        int $oldQuantity,
-        int $quantity,
+        float $oldQuantity,
+        float $quantity,
         ?Model $source = null,
         array $allocations = [],
     ): InventoryMovement {
@@ -300,8 +300,8 @@ class InventoryService
         int $stockId,
         int $inventoryId,
         int $productId,
-        int $oldQuantity,
-        int $quantity,
+        float $oldQuantity,
+        float $quantity,
         ?Model $source = null,
         array $allocations = [],
     ): InventoryMovement {
@@ -324,8 +324,8 @@ class InventoryService
         int $stockId,
         int $inventoryId,
         int $productId,
-        int $oldQuantity,
-        int $quantity,
+        float $oldQuantity,
+        float $quantity,
         ?Model $source = null,
         array $allocations = [],
     ): InventoryMovement {
@@ -349,8 +349,8 @@ class InventoryService
         int $stockId,
         int $inventoryId,
         int $productId,
-        int $oldQuantity,
-        int $quantity,
+        float $oldQuantity,
+        float $quantity,
         ?Model $source = null,
         array $allocations = [],
     ): InventoryMovement {
@@ -373,8 +373,8 @@ class InventoryService
         int $stockId,
         int $inventoryId,
         int $productId,
-        int $oldQuantity,
-        int $quantity,
+        float $oldQuantity,
+        float $quantity,
         ?Model $source = null,
         array $allocations = [],
     ): InventoryMovement {
@@ -402,11 +402,14 @@ class InventoryService
         int $inventoryId,
         int $productId,
         InventoryMovementType $type,
-        int $oldQuantity,
-        int $quantity,
+        float $oldQuantity,
+        float $quantity,
         ?Model $source = null,
         array $allocations = [],
     ): InventoryMovement {
+        $oldQuantity = round($oldQuantity, 2);
+        $quantity = round($quantity, 2);
+
         $movement = InventoryMovement::create([
             'stock_id'      => $stockId,
             'inventory_id'  => $inventoryId,
@@ -415,7 +418,7 @@ class InventoryService
             'source_id'     => $source?->id,
             'movement_type' => $type,
             'old_quantity'  => $oldQuantity,
-            'new_quantity'  => $oldQuantity + $quantity,
+            'new_quantity'  => round($oldQuantity + $quantity, 2),
             'quantity'      => $quantity,
         ]);
 
@@ -423,7 +426,7 @@ class InventoryService
             $movement->allocations()->createMany(
                 collect($allocations)->map(fn (array $allocation) => [
                     'batch_id'       => $allocation['batch_id'],
-                    'quantity'       => $allocation['quantity'],
+                    'quantity'       => round((float) $allocation['quantity'], 2),
                     'purchase_price' => $allocation['purchase_price'],
                 ])->all()
             );

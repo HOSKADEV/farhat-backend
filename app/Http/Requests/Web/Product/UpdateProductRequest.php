@@ -16,9 +16,14 @@ class UpdateProductRequest extends FormRequest
             'color_id'     => ['sometimes', 'nullable', 'integer', 'exists:colors,id'],
             'brand_id'     => ['sometimes', 'nullable', 'integer', 'exists:brands,id'],
             'name'         => ['sometimes', 'required', 'string', 'max:255'],
+            'base_unit_id' => ['sometimes', 'nullable', 'integer', 'exists:units,id'],
             'barcode'      => ['sometimes', 'nullable', 'string', 'max:100', Rule::unique('products', 'barcode')->ignore($id)],
             'image'        => ['sometimes', 'nullable', 'image', 'max:5120'],
             'min_quantity' => ['sometimes', 'nullable', 'integer', 'min:0'],
+
+            'unit_conversions'            => ['sometimes', 'array'],
+            'unit_conversions.*.unit_id'  => ['required', 'integer', 'distinct', 'exists:units,id'],
+            'unit_conversions.*.factor'   => ['required', 'numeric', 'gt:0'],
         ];
     }
 }

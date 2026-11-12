@@ -10,8 +10,8 @@ class UnitSeeder extends Seeder
     public function run(): void
     {
         $units = [
-            ['name' => 'Box', 'symbol' => 'box'],
-            ['name' => 'Kilogram', 'symbol' => 'kg'],
+            ['name' => 'Box', 'symbol' => 'box', 'allows_decimals' => false],
+            ['name' => 'Kilogram', 'symbol' => 'kg', 'allows_decimals' => true],
         ];
 
         foreach ($units as $unit) {

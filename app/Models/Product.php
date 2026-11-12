@@ -26,6 +26,7 @@ class Product extends Model implements HasMedia
         'color_id',
         'brand_id',
         'name',
+        'base_unit_id',
         'barcode',
         'min_quantity',
     ];
@@ -68,6 +69,28 @@ class Product extends Model implements HasMedia
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    public function baseUnit(): BelongsTo
+    {
+        return $this->belongsTo(Unit::class, 'base_unit_id');
+    }
+
+    public function unitConversions(): HasMany
+    {
+        return $this->hasMany(ProductUnitConversion::class);
+    }
+
+    /**
+     * Number of base units represented by one unit of the given unit.
+     */
+    public function conversionFactorFor(int $unitId): ?float
+    {
+        $conversion = $this->relationLoaded('unitConversions')
+            ? $this->unitConversions->firstWhere('unit_id', $unitId)
+            : $this->unitConversions()->where('unit_id', $unitId)->first();
+
+        return $conversion === null ? null : (float) $conversion->factor;
     }
 
     public function stocks(): HasMany

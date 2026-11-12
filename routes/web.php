@@ -114,6 +114,7 @@ Route::prefix('v1')->middleware('api.key')->group(function () {
         Route::post('clients/{client}/documents', [ClientController::class, 'storeDocument']);
         Route::delete('clients/{client}/documents/{media}', [ClientController::class, 'destroyDocument']);
         Route::apiResource('clients', ClientController::class);
+        Route::put('products/unit-conversions', [ProductController::class, 'updateUnitConversions']);
         Route::apiResource('products', ProductController::class);
         Route::apiResource('inventories', InventoryController::class);
         Route::get('inventory-movements', [InventoryMovementController::class, 'index']);
@@ -131,6 +132,7 @@ Route::prefix('v1')->middleware('api.key')->group(function () {
         Route::post('purchases/{purchase}/receive', [PurchaseController::class, 'receive']);
         Route::post('purchases/{purchase}/cancel', [PurchaseController::class, 'cancel']);
         Route::apiResource('stocks', StockController::class)->except(['update']);
+        Route::post('stocks/convert', [StockController::class, 'convert']);
         Route::apiResource('purchases.payments', PurchasePaymentController::class)->parameters(['payments' => 'purchase_payment'])->only(['index', 'store']);
         Route::post('purchases/{purchase}/payments/{purchase_payment}/cancel', [PurchasePaymentController::class, 'cancel']);
         Route::apiResource('purchase-returns', PurchaseReturnController::class)->parameters(['purchase-returns' => 'purchase_return']);

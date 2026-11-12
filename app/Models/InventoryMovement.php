@@ -34,9 +34,9 @@ class InventoryMovement extends Model
     {
         return [
             'movement_type' => InventoryMovementType::class,
-            'old_quantity'  => 'integer',
-            'new_quantity'  => 'integer',
-            'quantity'      => 'integer',
+            'old_quantity'  => 'float',
+            'new_quantity'  => 'float',
+            'quantity'      => 'float',
             'created_at'    => 'datetime',
         ];
     }

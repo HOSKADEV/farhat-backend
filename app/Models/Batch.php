@@ -28,8 +28,8 @@ class Batch extends Model
     {
         return [
             'purchase_price'   => 'decimal:2',
-            'initial_quantity' => 'integer',
-            'current_quantity' => 'integer',
+            'initial_quantity' => 'float',
+            'current_quantity' => 'float',
         ];
     }
 

@@ -9,6 +9,7 @@ use App\Models\Purchase;
 use App\Models\PurchaseReturn;
 use App\Models\Restock;
 use App\Models\Sale;
+use App\Models\StockConversion;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Spatie\QueryBuilder\AllowedFilter;
@@ -32,6 +33,7 @@ class InventoryMovementService
                     PurchaseReturn::class    => ['purchase.supplier'],
                     Restock::class           => [],
                     Sale::class              => ['client'],
+                    StockConversion::class   => ['fromUnit', 'toUnit', 'product', 'inventory'],
                 ]);
             }])
             ->allowedFilters(

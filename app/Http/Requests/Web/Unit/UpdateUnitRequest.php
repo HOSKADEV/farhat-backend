@@ -12,8 +12,9 @@ class UpdateUnitRequest extends FormRequest
         $unitId = $this->route('unit')?->id;
 
         return [
-            'name'   => ['required', 'string', 'max:255', Rule::unique('units', 'name')->ignore($unitId)],
-            'symbol' => ['required', 'string', 'max:20', Rule::unique('units', 'symbol')->ignore($unitId)],
+            'name'            => ['required', 'string', 'max:255', Rule::unique('units', 'name')->ignore($unitId)],
+            'symbol'          => ['required', 'string', 'max:20', Rule::unique('units', 'symbol')->ignore($unitId)],
+            'allows_decimals' => ['sometimes', 'boolean'],
         ];
     }
 }

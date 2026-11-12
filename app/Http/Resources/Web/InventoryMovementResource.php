@@ -6,6 +6,7 @@ use App\Models\InventoryTransfer;
 use App\Models\Purchase;
 use App\Models\PurchaseReturn;
 use App\Models\Sale;
+use App\Models\StockConversion;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -86,6 +87,14 @@ class InventoryMovementResource extends JsonResource
                                 'id'   => $source->toInventory->id,
                                 'name' => $source->toInventory->name,
                             ]),
+                        ],
+                        $source instanceof StockConversion => [
+                            'from_unit_id'  => $source->from_unit_id,
+                            'to_unit_id'    => $source->to_unit_id,
+                            'from_quantity' => (float) $source->from_quantity,
+                            'to_quantity'   => (float) $source->to_quantity,
+                            'unit_cost'     => (float) $source->unit_cost,
+                            'total_cost'    => (float) $source->total_cost,
                         ],
                         default => [],
                     },

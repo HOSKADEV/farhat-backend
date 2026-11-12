@@ -15,12 +15,13 @@ class Unit extends Model
     use LogsActivity;
     use HasUserstamps;
 
-    protected $fillable = ['name', 'symbol'];
+    protected $fillable = ['name', 'symbol', 'allows_decimals'];
 
     protected function casts(): array
     {
         return [
-            'is_default' => 'boolean',
+            'is_default'      => 'boolean',
+            'allows_decimals' => 'boolean',
         ];
     }
 
@@ -47,5 +48,23 @@ class Unit extends Model
     public function stocks(): HasMany
     {
         return $this->hasMany(Stock::class);
+    }
+
+    public function productConversions(): HasMany
+    {
+        return $this->hasMany(ProductUnitConversion::class);
+    }
+
+    /**
+     * Quantities may only carry up to two decimal places for units that allow
+     * fractional amounts.
+     */
+    public function acceptsQuantity(float $quantity): bool
+    {
+        if (! $this->allows_decimals) {
+            return abs($quantity - round($quantity)) < 1e-9;
+        }
+
+        return abs($quantity * 100 - round($quantity * 100)) < 1e-6;
     }
 }

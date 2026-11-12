@@ -28,8 +28,8 @@ class StockResource extends JsonResource
             'installment_price' => $this->whenLoaded('installmentPrice', fn () => $this->installmentPrice?->amount),
             'wholesale_price'   => $this->whenLoaded('wholesalePrice', fn () => $this->wholesalePrice?->amount),
 
-            'current_quantity' => $this->whenLoaded('currentQuantity', fn () => (int) $this->currentQuantity?->total_current_quantity),
-            'initial_quantity' => $this->whenLoaded('initialQuantity', fn () => (int) $this->initialQuantity?->total_initial_quantity),
+            'current_quantity' => $this->whenLoaded('currentQuantity', fn () => round((float) $this->currentQuantity?->total_current_quantity, 2)),
+            'initial_quantity' => $this->whenLoaded('initialQuantity', fn () => round((float) $this->initialQuantity?->total_initial_quantity, 2)),
 
             'sold_quantity' => $this->when(
                 $this->resource->sold_quantity !== null,

@@ -44,8 +44,9 @@ class UnitService
     public function create(array $data): Unit
     {
         return Unit::create([
-            'name'   => $data['name'],
-            'symbol' => $data['symbol'],
+            'name'            => $data['name'],
+            'symbol'          => $data['symbol'],
+            'allows_decimals' => $data['allows_decimals'] ?? false,
         ]);
     }
 
@@ -56,10 +57,11 @@ class UnitService
 
     public function update(Unit $unit, array $data): Unit
     {
-        $unit->update([
-            'name'   => $data['name'],
-            'symbol' => $data['symbol'],
-        ]);
+        $unit->update(array_filter([
+            'name'            => $data['name'] ?? null,
+            'symbol'          => $data['symbol'] ?? null,
+            'allows_decimals' => array_key_exists('allows_decimals', $data) ? (bool) $data['allows_decimals'] : null,
+        ], fn ($value) => $value !== null));
 
         return $unit->refresh();
     }

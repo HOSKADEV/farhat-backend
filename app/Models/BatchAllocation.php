@@ -22,7 +22,7 @@ class BatchAllocation extends Model
     protected function casts(): array
     {
         return [
-            'quantity'       => 'integer',
+            'quantity'       => 'float',
             'purchase_price' => 'decimal:2',
         ];
     }

@@ -9,8 +9,9 @@ class StoreUnitRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'   => ['required', 'string', 'max:255', 'unique:units,name'],
-            'symbol' => ['required', 'string', 'max:20', 'unique:units,symbol'],
+            'name'            => ['required', 'string', 'max:255', 'unique:units,name'],
+            'symbol'          => ['required', 'string', 'max:20', 'unique:units,symbol'],
+            'allows_decimals' => ['sometimes', 'boolean'],
         ];
     }
 }

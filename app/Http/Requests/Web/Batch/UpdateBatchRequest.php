@@ -17,8 +17,8 @@ class UpdateBatchRequest extends FormRequest
             'source_id'        => ['nullable', 'integer'],
             'source_type'      => ['nullable', 'string', 'max:50'],
             'purchase_price'   => ['sometimes', 'numeric', 'min:0'],
-            'initial_quantity' => ['sometimes', 'integer', 'min:0'],
-            'current_quantity' => ['sometimes', 'integer', 'min:0'],
+            'initial_quantity' => ['sometimes', 'numeric', 'min:0'],
+            'current_quantity' => ['sometimes', 'numeric', 'min:0'],
         ];
     }
 }

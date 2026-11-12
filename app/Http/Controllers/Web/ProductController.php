@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Enums\Permission;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Web\Product\BulkUpdateUnitConversionsRequest;
 use App\Http\Requests\Web\Product\StoreProductRequest;
 use App\Http\Requests\Web\Product\UpdateProductRequest;
 use App\Http\Resources\Web\ProductResource;
@@ -65,6 +66,23 @@ class ProductController extends Controller
             return $this->successResponse(new ProductResource($product));
         } catch (\Exception $e) {
             return $this->errorResponse(message: $e->getMessage(), statusCode: $e->getCode() ?? 400);
+        }
+    }
+
+    public function updateUnitConversions(BulkUpdateUnitConversionsRequest $request): JsonResponse
+    {
+        if ($response = $this->authorizePermission(Permission::UPDATE_PRODUCTS->value)) {
+            return $response;
+        }
+
+        try {
+            $products = $this->productService->bulkUpdateUnitConversions(
+                $this->validateRequest($request)['products'],
+            );
+
+            return $this->successResponse(ProductResource::collection($products));
+        } catch (\Exception $e) {
+            return $this->errorResponse(message: $e->getMessage(), statusCode: $e->getCode() ?: 400);
         }
     }
 

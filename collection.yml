@@ -4250,6 +4250,9 @@ items:
                   - name: symbol
                     type: text
                     value: box
+                  - name: allows_decimals
+                    type: text
+                    value: '0'
               auth:
                 type: bearer
                 token: '{{token}}'
@@ -4290,7 +4293,7 @@ items:
               seq: 1
             http:
               method: GET
-              url: '{{url}}/v1/units?filter[search]=&filter[name]=&filter[symbol]=&filter[is_default]=&filter[created_at_from]=&filter[created_at_to]=&sort=name&page=&per_page='
+              url: '{{url}}/v1/units?filter[search]=&filter[name]=&filter[symbol]=&filter[is_default]=&filter[allows_decimals]=&filter[created_at_from]=&filter[created_at_to]=&sort=name&page=&per_page='
               headers:
                 - name: Accept
                   value: application/json
@@ -4307,6 +4310,9 @@ items:
                   value: ''
                   type: query
                 - name: filter[is_default]
+                  value: ''
+                  type: query
+                - name: filter[allows_decimals]
                   value: ''
                   type: query
                 - name: filter[created_at_from]
@@ -4381,6 +4387,9 @@ items:
                   - name: symbol
                     type: text
                     value: box
+                  - name: allows_decimals
+                    type: text
+                    value: '0'
               auth:
                 type: bearer
                 token: '{{token}}'
@@ -6245,6 +6254,21 @@ items:
                   - name: min_quantity
                     type: text
                     value: '5'
+                  - name: base_unit_id
+                    type: text
+                    value: '1'
+                  - name: unit_conversions[0][unit_id]
+                    type: text
+                    value: '1'
+                  - name: unit_conversions[0][factor]
+                    type: text
+                    value: '1'
+                  - name: unit_conversions[1][unit_id]
+                    type: text
+                    value: '2'
+                  - name: unit_conversions[1][factor]
+                    type: text
+                    value: '12'
               auth:
                 type: bearer
                 token: '{{token}}'
@@ -6401,6 +6425,26 @@ items:
                     type: text
                     value: '6'
                     disabled: true
+                  - name: base_unit_id
+                    type: text
+                    value: '1'
+                    disabled: true
+                  - name: unit_conversions[0][unit_id]
+                    type: text
+                    value: '1'
+                    disabled: true
+                  - name: unit_conversions[0][factor]
+                    type: text
+                    value: '1'
+                    disabled: true
+                  - name: unit_conversions[1][unit_id]
+                    type: text
+                    value: '2'
+                    disabled: true
+                  - name: unit_conversions[1][factor]
+                    type: text
+                    value: '12'
+                    disabled: true
               auth:
                 type: bearer
                 token: '{{token}}'
@@ -6408,6 +6452,68 @@ items:
               variables:
                 - name: product
                   value: '1'
+            settings:
+              encodeUrl: true
+              timeout: 0
+              followRedirects: true
+              maxRedirects: 5
+              forwardAuthorizationHeader: true
+          - info:
+              name: update product unit conversions
+              type: http
+              seq: 6
+            http:
+              method: PUT
+              url: '{{url}}/v1/products/unit-conversions'
+              headers:
+                - name: Accept
+                  value: application/json
+                - name: Content-Type
+                  value: multipart/form-data
+                - name: X-Client-Type
+                  value: '{{client_type}}'
+              body:
+                type: multipart-form
+                data:
+                  - name: products[0][product_id]
+                    type: text
+                    value: '1'
+                  - name: products[0][base_unit_id]
+                    type: text
+                    value: '1'
+                  - name: products[0][unit_conversions][0][unit_id]
+                    type: text
+                    value: '1'
+                  - name: products[0][unit_conversions][0][factor]
+                    type: text
+                    value: '1'
+                  - name: products[0][unit_conversions][1][unit_id]
+                    type: text
+                    value: '2'
+                  - name: products[0][unit_conversions][1][factor]
+                    type: text
+                    value: '12'
+                  - name: products[1][product_id]
+                    type: text
+                    value: '2'
+                  - name: products[1][base_unit_id]
+                    type: text
+                    value: '3'
+                  - name: products[1][unit_conversions][0][unit_id]
+                    type: text
+                    value: '3'
+                  - name: products[1][unit_conversions][0][factor]
+                    type: text
+                    value: '1'
+                  - name: products[1][unit_conversions][1][unit_id]
+                    type: text
+                    value: '4'
+                  - name: products[1][unit_conversions][1][factor]
+                    type: text
+                    value: '1000'
+              auth:
+                type: bearer
+                token: '{{token}}'
             settings:
               encodeUrl: true
               timeout: 0
@@ -8668,6 +8774,53 @@ items:
               variables:
                 - name: stock
                   value: '1'
+            settings:
+              encodeUrl: true
+              timeout: 0
+              followRedirects: true
+              maxRedirects: 5
+              forwardAuthorizationHeader: true
+          - info:
+              name: convert stock
+              type: http
+              seq: 5
+            http:
+              method: POST
+              url: '{{url}}/v1/stocks/convert'
+              headers:
+                - name: Accept
+                  value: application/json
+                - name: Content-Type
+                  value: multipart/form-data
+                - name: X-Client-Type
+                  value: '{{client_type}}'
+              body:
+                type: multipart-form
+                data:
+                  - name: inventory_id
+                    type: text
+                    value: '1'
+                  - name: product_id
+                    type: text
+                    value: '2'
+                  - name: from_unit_id
+                    type: text
+                    value: '2'
+                  - name: to_unit_id
+                    type: text
+                    value: '1'
+                  - name: quantity
+                    type: text
+                    value: '1'
+                  - name: unit_cost
+                    type: text
+                    value: ''
+                  - name: note
+                    type: text
+                    value: ''
+              auth:
+                type: bearer
+                token: '{{token}}'
             settings:
               encodeUrl: true
               timeout: 0

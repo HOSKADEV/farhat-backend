@@ -4,16 +4,22 @@ namespace App\Http\Controllers\Web;
 
 use App\Enums\Permission;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Web\Stock\ConvertStockRequest;
 use App\Http\Requests\Web\Stock\StoreStockRequest;
+use App\Http\Resources\Web\StockConversionResource;
 use App\Http\Resources\Web\StockResource;
 use App\Models\Stock;
+use App\Services\StockConversionService;
 use App\Services\StockService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class StockController extends Controller
 {
-    public function __construct(private readonly StockService $stockService) {}
+    public function __construct(
+        private readonly StockService $stockService,
+        private readonly StockConversionService $stockConversionService,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -49,6 +55,21 @@ class StockController extends Controller
             return $this->successResponse(new StockResource($this->stockService->show($stock)));
         } catch (\Exception $e) {
             return $this->errorResponse(message: $e->getMessage(), statusCode: $e->getCode() ?? 400);
+        }
+    }
+
+    public function convert(ConvertStockRequest $request): JsonResponse
+    {
+        if ($response = $this->authorizePermission(Permission::UPDATE_STOCKS->value)) {
+            return $response;
+        }
+
+        try {
+            $conversion = $this->stockConversionService->convert($this->validateRequest($request));
+
+            return $this->successResponse(new StockConversionResource($conversion), statusCode: 201);
+        } catch (\Exception $e) {
+            return $this->errorResponse(message: $e->getMessage(), statusCode: $e->getCode() ?: 400);
         }
     }
 
