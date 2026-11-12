@@ -93,7 +93,7 @@ class Restock extends Model
 
     public function fulfilledWith(): MorphTo
     {
-        return $this->morphTo('fulfilled_with');
+        return $this->morphTo();
     }
 
     public function inventoryMovements(): HasMany

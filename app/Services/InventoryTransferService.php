@@ -33,7 +33,7 @@ class InventoryTransferService
         $query->byUserBranches();
 
         return QueryBuilder::for($query, $request)
-            ->with(['fromInventory', 'toInventory', 'items.stock.product'])
+            ->with(['fromInventory', 'toInventory', 'items.stock.product', 'items.stock.unit'])
             ->allowedFilters(
                 AllowedFilter::exact('from_inventory_id'),
                 AllowedFilter::exact('to_inventory_id'),
@@ -84,13 +84,13 @@ class InventoryTransferService
 
             $this->notifyCreated($transfer, NotificationType::INVENTORY_TRANSFER_CREATED);
 
-            return $transfer->fresh()->load(['fromInventory', 'toInventory', 'items.stock.product']);
+            return $transfer->fresh()->load(['fromInventory', 'toInventory', 'items.stock.product', 'items.stock.unit']);
         });
     }
 
     public function show(InventoryTransfer $transfer): InventoryTransfer
     {
-        return $transfer->loadMissing(['fromInventory', 'toInventory', 'items.stock.product']);
+        return $transfer->loadMissing(['fromInventory', 'toInventory', 'items.stock.product', 'items.stock.unit']);
     }
 
     public function update(InventoryTransfer $transfer, array $data): InventoryTransfer
@@ -118,7 +118,7 @@ class InventoryTransferService
                 }
             }
 
-            return $transfer->fresh()->loadMissing(['fromInventory', 'toInventory', 'items.stock.product']);
+            return $transfer->fresh()->loadMissing(['fromInventory', 'toInventory', 'items.stock.product', 'items.stock.unit']);
         });
     }
 
@@ -184,14 +184,14 @@ class InventoryTransferService
 
             $this->notifyAction($transfer, NotificationType::INVENTORY_TRANSFER_DISPATCHED, $transfer->branchIds());
 
-            return $transfer->fresh()->loadMissing(['fromInventory', 'toInventory', 'items.stock.product']);
+            return $transfer->fresh()->loadMissing(['fromInventory', 'toInventory', 'items.stock.product', 'items.stock.unit']);
         });
     }
 
     public function receive(InventoryTransfer $transfer, array $data = []): InventoryTransfer
     {
         return DB::transaction(function () use ($transfer, $data) {
-            $transfer->loadMissing('items.stock.prices');
+            $transfer->loadMissing(['items.stock.prices', 'items.stock.unit']);
 
             // Index optional per-item pricing overrides by source stock_id
             $pricingByStock = collect($data['items'] ?? [])->keyBy('stock_id');
@@ -262,7 +262,8 @@ class InventoryTransferService
 
                 // Update restock fulfilled_quantity if linked
                 if ($restock && $receivedQuantity > 0) {
-                    $restockItem = $restock->items()->where('product_id', $transferItem->stock->product_id)->first();
+                    $restockItem = $this->resolveRestockItem($restock, $transferItem);
+
                     if ($restockItem) {
                         $restockItem->increment('fulfilled_quantity', $receivedQuantity);
                     }
@@ -273,7 +274,7 @@ class InventoryTransferService
 
             $transfer->update(['status' => InventoryTransferStatus::RECEIVED]);
 
-            return $transfer->fresh()->loadMissing(['fromInventory', 'toInventory', 'items.stock.product']);
+            return $transfer->fresh()->loadMissing(['fromInventory', 'toInventory', 'items.stock.product', 'items.stock.unit']);
         });
     }
 
@@ -378,7 +379,7 @@ class InventoryTransferService
 
             $transfer->update(['status' => InventoryTransferStatus::CANCELED]);
 
-            return $transfer->fresh()->loadMissing(['fromInventory', 'toInventory', 'items.stock.product']);
+            return $transfer->fresh()->loadMissing(['fromInventory', 'toInventory', 'items.stock.product', 'items.stock.unit']);
         });
     }
 
@@ -386,6 +387,29 @@ class InventoryTransferService
     {
         $transfer->items()->delete();
         $transfer->delete();
+    }
+
+    /**
+     * Find the restock line a received transfer item fulfills, tolerating
+     * transfers created before restock_item_id was recorded.
+     */
+    private function resolveRestockItem(Restock $restock, InventoryTransferItem $item): ?\App\Models\RestockItem
+    {
+        if ($item->restock_item_id) {
+            return $restock->items()->whereKey($item->restock_item_id)->first();
+        }
+
+        $stock = $item->stock;
+
+        if (! $stock) {
+            return null;
+        }
+
+        return $restock->items()
+            ->where('product_id', $stock->product_id)
+            ->where('unit_id', $stock->unit_id)
+            ->first()
+            ?? $restock->items()->where('product_id', $stock->product_id)->first();
     }
 
     private function validateStocksBelongToInventory(int $inventoryId, array $items): void

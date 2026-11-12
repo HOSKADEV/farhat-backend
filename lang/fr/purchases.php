@@ -16,4 +16,5 @@ return [
     'selling_price_below_old_batches' => 'Le prix de vente doit être supérieur au prix d\'achat maximum des lots en stock (:price).',
     'installment_price_below_purchase' => 'Le prix de versement doit être supérieur au prix d\'achat (:price).',
     'installment_price_below_old_batches' => 'Le prix de versement doit être supérieur au prix d\'achat maximum des lots en stock (:price).',
+    'duplicate_product_unit' => 'Le même produit ne peut pas apparaître deux fois avec la même unité.',
 ];

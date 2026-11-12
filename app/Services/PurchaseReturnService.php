@@ -33,7 +33,7 @@ class PurchaseReturnService
     public function list(Request $request): LengthAwarePaginator
     {
         return QueryBuilder::for(PurchaseReturn::class, $request)
-            ->with(['purchase.inventory', 'purchase.branch', 'purchase.returns.items.purchaseItem', 'items.purchaseItem.product', 'items.purchaseItem.returnItems.purchaseReturn'])
+            ->with(['purchase.inventory', 'purchase.branch', 'purchase.returns.items.purchaseItem', 'items.purchaseItem.product', 'items.purchaseItem.unit', 'items.purchaseItem.returnItems.purchaseReturn'])
             ->allowedFilters(
                 AllowedFilter::partial('reference'),
                 AllowedFilter::exact('purchase_id'),
@@ -86,7 +86,7 @@ class PurchaseReturnService
 
             $this->notifyCreated($purchaseReturn, NotificationType::PURCHASE_RETURN_CREATED);
 
-            return $purchaseReturn->fresh()->loadMissing(['purchase', 'purchase.returns.items.purchaseItem', 'items.purchaseItem.product', 'items.purchaseItem.returnItems.purchaseReturn']);
+            return $purchaseReturn->fresh()->loadMissing(['purchase', 'purchase.returns.items.purchaseItem', 'items.purchaseItem.product', 'items.purchaseItem.unit', 'items.purchaseItem.returnItems.purchaseReturn']);
         });
     }
 
@@ -120,13 +120,13 @@ class PurchaseReturnService
                 }
             }
 
-            return $purchaseReturn->fresh()->loadMissing(['purchase', 'purchase.returns.items.purchaseItem', 'items.purchaseItem.product', 'items.purchaseItem.returnItems.purchaseReturn']);
+            return $purchaseReturn->fresh()->loadMissing(['purchase', 'purchase.returns.items.purchaseItem', 'items.purchaseItem.product', 'items.purchaseItem.unit', 'items.purchaseItem.returnItems.purchaseReturn']);
         });
     }
 
     public function show(PurchaseReturn $purchaseReturn): PurchaseReturn
     {
-        return $purchaseReturn->loadMissing(['purchase.inventory', 'purchase.returns.items.purchaseItem', 'items.purchaseItem.product', 'items.purchaseItem.returnItems.purchaseReturn']);
+        return $purchaseReturn->loadMissing(['purchase.inventory', 'purchase.returns.items.purchaseItem', 'items.purchaseItem.product', 'items.purchaseItem.unit', 'items.purchaseItem.returnItems.purchaseReturn']);
     }
 
     public function approve(PurchaseReturn $purchaseReturn, ?int $walletId = null): PurchaseReturn
@@ -207,7 +207,7 @@ class PurchaseReturnService
 
             $this->notifyAction($purchaseReturn, NotificationType::PURCHASE_RETURN_APPROVED, $purchase->branch_id);
 
-            return $purchaseReturn->fresh()->loadMissing(['purchase', 'purchase.returns.items.purchaseItem', 'items.purchaseItem.product', 'items.purchaseItem.returnItems.purchaseReturn']);
+            return $purchaseReturn->fresh()->loadMissing(['purchase', 'purchase.returns.items.purchaseItem', 'items.purchaseItem.product', 'items.purchaseItem.unit', 'items.purchaseItem.returnItems.purchaseReturn']);
         });
     }
 
@@ -233,7 +233,7 @@ class PurchaseReturnService
 
         $this->notifyAction($purchaseReturn, NotificationType::PURCHASE_RETURN_CANCELLED, $purchaseReturn->purchase?->branch_id);
 
-        return $purchaseReturn->refresh()->loadMissing(['purchase', 'purchase.returns.items.purchaseItem', 'items.purchaseItem.product', 'items.purchaseItem.returnItems.purchaseReturn']);
+        return $purchaseReturn->refresh()->loadMissing(['purchase', 'purchase.returns.items.purchaseItem', 'items.purchaseItem.product', 'items.purchaseItem.unit', 'items.purchaseItem.returnItems.purchaseReturn']);
     }
 
     private function resolveWalletId(PurchaseReturn $purchaseReturn, ?int $walletId): int

@@ -15,6 +15,7 @@ class InventoryTransferItem extends Model
     protected $fillable = [
         'inventory_transfer_id',
         'stock_id',
+        'restock_item_id',
         'quantity',
     ];
 
@@ -33,5 +34,10 @@ class InventoryTransferItem extends Model
     public function stock(): BelongsTo
     {
         return $this->belongsTo(Stock::class);
+    }
+
+    public function restockItem(): BelongsTo
+    {
+        return $this->belongsTo(RestockItem::class);
     }
 }

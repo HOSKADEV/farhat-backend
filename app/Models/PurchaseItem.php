@@ -19,6 +19,8 @@ class PurchaseItem extends Model
     protected $fillable = [
         'purchase_id',
         'product_id',
+        'unit_id',
+        'restock_item_id',
         'quantity',
         'price',
     ];
@@ -57,6 +59,16 @@ class PurchaseItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(Unit::class);
+    }
+
+    public function restockItem(): BelongsTo
+    {
+        return $this->belongsTo(RestockItem::class);
     }
 
     public function stock(): MorphOne

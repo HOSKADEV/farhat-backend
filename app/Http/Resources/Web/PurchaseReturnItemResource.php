@@ -18,6 +18,7 @@ class PurchaseReturnItemResource extends JsonResource
 
             'purchase_item' => $this->whenLoaded('purchaseItem', fn () => [
                 'id'           => $this->purchaseItem->id,
+                'unit_id'      => $this->purchaseItem->unit_id,
                 'quantity'     => $this->purchaseItem->quantity,
                 'net_quantity' => $this->purchaseItem->net_quantity,
                 'price'        => $this->purchaseItem->price,
@@ -25,6 +26,9 @@ class PurchaseReturnItemResource extends JsonResource
                     'id'   => $this->purchaseItem->product->id,
                     'name' => $this->purchaseItem->product->name,
                 ] : null,
+                'unit' => $this->purchaseItem->relationLoaded('unit')
+                    ? new UnitResource($this->purchaseItem->unit)
+                    : null,
             ]),
         ];
     }

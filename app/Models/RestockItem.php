@@ -15,6 +15,7 @@ class RestockItem extends Model
     protected $fillable = [
         'restock_id',
         'product_id',
+        'unit_id',
         'requested_quantity',
         'fulfilled_quantity',
     ];
@@ -35,5 +36,10 @@ class RestockItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(Unit::class);
     }
 }

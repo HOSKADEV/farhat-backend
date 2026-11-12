@@ -11,7 +11,6 @@ use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\Restock;
 use App\Models\Stock;
-use App\Models\Unit;
 use Exception;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
@@ -36,7 +35,7 @@ class PurchaseService
         $query->byUserBranches();
 
         return QueryBuilder::for($query, $request)
-            ->with(['supplier', 'branch', 'items.product', 'items.returnItems.purchaseReturn', 'inventory', 'returns.items.purchaseItem', 'payments', 'refunds'])
+            ->with(['supplier', 'branch', 'items.product', 'items.unit', 'items.returnItems.purchaseReturn', 'inventory', 'returns.items.purchaseItem', 'payments', 'refunds'])
             ->allowedFilters(
                 AllowedFilter::partial('reference'),
                 AllowedFilter::exact('supplier_id'),
@@ -93,6 +92,7 @@ class PurchaseService
             $purchase->items()->createMany(
                 collect($items)->map(fn($item) => [
                     'product_id' => $item['product_id'],
+                    'unit_id' => $item['unit_id'],
                     'quantity' => $item['quantity'],
                     'price' => $item['price'],
                 ])->all()
@@ -102,13 +102,13 @@ class PurchaseService
 
             $this->notifyCreated($purchase, NotificationType::PURCHASE_CREATED);
 
-            return $purchase->loadMissing(['supplier', 'items.product', 'returns.items.purchaseItem']);
+            return $purchase->loadMissing(['supplier', 'items.product', 'items.unit', 'returns.items.purchaseItem']);
         });
     }
 
     public function show(Purchase $purchase): Purchase
     {
-        return $purchase->loadMissing(['supplier', 'items.product', 'payments', 'refunds', 'inventory', 'returns.items.purchaseItem']);
+        return $purchase->loadMissing(['supplier', 'items.product', 'items.unit', 'payments', 'refunds', 'inventory', 'returns.items.purchaseItem']);
     }
 
     public function update(Purchase $purchase, array $data): Purchase
@@ -129,10 +129,18 @@ class PurchaseService
 
                 $totalAmount = collect($items)->sum(fn($item) => $item['quantity'] * $item['price']);
 
+                // Keep restock lineage for lines that survive the edit.
+                $restockLinks = $purchase->items()
+                    ->whereNotNull('restock_item_id')
+                    ->get()
+                    ->keyBy(fn(PurchaseItem $item) => $item->product_id . ':' . $item->unit_id);
+
                 $purchase->items()->delete();
                 $purchase->items()->createMany(
                     collect($items)->map(fn($item) => [
                         'product_id' => $item['product_id'],
+                        'unit_id' => $item['unit_id'],
+                        'restock_item_id' => $restockLinks->get($item['product_id'] . ':' . $item['unit_id'])?->restock_item_id,
                         'quantity' => $item['quantity'],
                         'price' => $item['price'],
                     ])->all()
@@ -143,7 +151,7 @@ class PurchaseService
                 $purchase->recalculateAmounts();
             }
 
-            return $purchase->refresh()->loadMissing(['supplier', 'items.product', 'payments', 'returns.items.purchaseItem']);
+            return $purchase->refresh()->loadMissing(['supplier', 'items.product', 'items.unit', 'payments', 'returns.items.purchaseItem']);
         });
     }
 
@@ -166,7 +174,7 @@ class PurchaseService
 
         $this->notifyAction($purchase, NotificationType::PURCHASE_CANCELLED, $purchase->branch_id);
 
-        return $purchase->refresh()->loadMissing(['supplier', 'items.product', 'payments', 'returns.items.purchaseItem']);
+        return $purchase->refresh()->loadMissing(['supplier', 'items.product', 'items.unit', 'payments', 'returns.items.purchaseItem']);
     }
 
     public function receive(Purchase $purchase, array $data): Purchase
@@ -183,14 +191,15 @@ class PurchaseService
                 'inventory_id' => $inventoryId,
             ]);
 
-            // Index optional per-item pricing overrides by product_id
-            $pricingByProduct = collect($data['items'] ?? [])->keyBy('product_id');
-
-            // Purchases carry no unit yet, so items are booked into the default unit.
-            $unitId = Unit::defaultId();
+            // Index optional per-item pricing overrides by purchase item, falling back to product
+            $pricingByItem = collect($data['items'] ?? [])->keyBy(
+                fn (array $line) => ! empty($line['purchase_item_id'])
+                    ? 'id:' . $line['purchase_item_id']
+                    : 'product:' . $line['product_id'],
+            );
 
             // Validate prices before processing
-            $this->validatePrices($purchase, $inventoryId, $pricingByProduct, $unitId);
+            $this->validatePrices($purchase, $inventoryId, $pricingByItem);
 
             // If this purchase was created from a restock, load the restock to update fulfilled quantities
             $restock = Restock::where('fulfilled_with_id', $purchase->id)
@@ -198,12 +207,12 @@ class PurchaseService
                 ->first();
 
             foreach ($purchase->items as $item) {
-                $pricing = $pricingByProduct->get($item->product_id, []);
+                $pricing = $this->pricingFor($pricingByItem, $item);
 
                 $stock = Stock::firstOrCreate([
                     'inventory_id' => $inventoryId,
                     'product_id' => $item->product_id,
-                    'unit_id' => $unitId,
+                    'unit_id' => $item->unit_id,
                 ]);
 
                 $oldQuantity = $stock->batches()->sum('current_quantity');
@@ -246,7 +255,8 @@ class PurchaseService
 
                 // Update restock fulfilled_quantity if linked
                 if ($restock) {
-                    $restockItem = $restock->items()->where('product_id', $item->product_id)->first();
+                    $restockItem = $this->resolveRestockItem($restock, $item);
+
                     if ($restockItem) {
                         $restockItem->increment('fulfilled_quantity', $item->quantity);
                     }
@@ -255,41 +265,46 @@ class PurchaseService
 
             $this->notifyAction($purchase, NotificationType::PURCHASE_RECEIVED, $purchase->branch_id);
 
-            return $purchase->refresh()->loadMissing(['supplier', 'items.product', 'payments', 'returns.items.purchaseItem']);
+            return $purchase->refresh()->loadMissing(['supplier', 'items.product', 'items.unit', 'payments', 'returns.items.purchaseItem']);
         });
     }
 
     private function validatePrices(
         Purchase $purchase,
         int $inventoryId,
-        \Illuminate\Support\Collection $pricingByProduct,
-        int $unitId,
+        \Illuminate\Support\Collection $pricingByItem,
     ): void
     {
-        if ($pricingByProduct->isEmpty()) {
+        if ($pricingByItem->isEmpty()) {
             return;
         }
 
-        // Fetch max old-batch purchase prices in a single query, keyed by product_id
+        $pricedItems = $purchase->items
+            ->filter(fn (PurchaseItem $item) => $this->pricingFor($pricingByItem, $item) !== []);
+
+        if ($pricedItems->isEmpty()) {
+            return;
+        }
+
+        // Fetch max old-batch purchase prices in a single query, keyed by product and unit
         $maxOldBatchPrices = Stock::where('inventory_id', $inventoryId)
-            ->where('unit_id', $unitId)
-            ->whereIn('product_id', $pricingByProduct->keys())
+            ->whereIn('product_id', $pricedItems->pluck('product_id')->unique())
+            ->whereIn('unit_id', $pricedItems->pluck('unit_id')->unique())
             ->join('batches', 'stocks.id', '=', 'batches.stock_id')
             ->where('batches.current_quantity', '>', 0)
-            ->groupBy('stocks.product_id')
-            ->selectRaw('stocks.product_id, MAX(batches.purchase_price) as max_price')
-            ->pluck('max_price', 'stocks.product_id')
-            ->map(fn($v) => (float) $v);
+            ->groupBy('stocks.product_id', 'stocks.unit_id')
+            ->selectRaw('stocks.product_id, stocks.unit_id, MAX(batches.purchase_price) as max_price')
+            ->get()
+            ->keyBy(fn ($row) => $row->product_id . ':' . $row->unit_id);
 
         foreach ($purchase->items as $item) {
-            $pricing = $pricingByProduct->get($item->product_id);
-            $maxOldBatchPrice = $maxOldBatchPrices->get($item->product_id, 0);
+            $pricing = $this->pricingFor($pricingByItem, $item);
 
-            if (!$pricing) {
+            if ($pricing === []) {
                 continue;
             }
 
-
+            $maxOldBatchPrice = (float) ($maxOldBatchPrices->get($item->product_id . ':' . $item->unit_id)?->max_price ?? 0);
 
             foreach ($pricing['selling_prices'] ?? [] as $amount) {
                 $amount = (float) $amount;
@@ -321,6 +336,34 @@ class PurchaseService
                 }
             }
         }
+    }
+
+    /**
+     * Resolve a receive pricing override for a purchase line, preferring an
+     * explicit purchase_item_id and falling back to the legacy product_id key.
+     */
+    private function pricingFor(\Illuminate\Support\Collection $pricingByItem, PurchaseItem $item): array
+    {
+        return $pricingByItem->get('id:' . $item->id)
+            ?? $pricingByItem->get('product:' . $item->product_id)
+            ?? [];
+    }
+
+    /**
+     * Find the restock line a received purchase item fulfills, tolerating
+     * purchases created before restock_item_id was recorded.
+     */
+    private function resolveRestockItem(Restock $restock, PurchaseItem $item): ?\App\Models\RestockItem
+    {
+        if ($item->restock_item_id) {
+            return $restock->items()->whereKey($item->restock_item_id)->first();
+        }
+
+        return $restock->items()
+            ->where('product_id', $item->product_id)
+            ->where('unit_id', $item->unit_id)
+            ->first()
+            ?? $restock->items()->where('product_id', $item->product_id)->first();
     }
 
     private function resolveInventoryId(Purchase $purchase, ?int $inventoryId): int

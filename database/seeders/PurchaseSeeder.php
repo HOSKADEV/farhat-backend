@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\Supplier;
+use App\Models\Unit;
 use App\Models\Wallet;
 use App\Services\PurchasePaymentService;
 use App\Services\PurchaseReturnService;
@@ -25,6 +26,7 @@ class PurchaseSeeder extends Seeder
             return;
         }
 
+        $unitId          = Unit::defaultId();
         $purchaseService = app(PurchaseService::class);
         $paymentService  = app(PurchasePaymentService::class);
         $returnService   = app(PurchaseReturnService::class);
@@ -47,6 +49,7 @@ class PurchaseSeeder extends Seeder
             'note'        => 'First purchase order',
             'items' => $products->map(fn ($product, $i) => [
                 'product_id' => $product->id,
+                'unit_id'    => $unitId,
                 'quantity'   => 5 + $i,
                 'price'      => 50000 + ($i * 25000),
             ])->all(),
@@ -83,6 +86,7 @@ class PurchaseSeeder extends Seeder
             'note'        => 'Second purchase order',
             'items' => [[
                 'product_id' => $p2Product->id,
+                'unit_id'    => $unitId,
                 'quantity'   => 10,
                 'price'      => 20000,
             ]],

@@ -11,8 +11,9 @@ class RestockItemResource extends JsonResource
     {
         return [
             'id'                 => $this->id,
-            'restock_id'   => $this->restock_id,
+            'restock_id'         => $this->restock_id,
             'product_id'         => $this->product_id,
+            'unit_id'            => $this->unit_id,
             'requested_quantity' => $this->requested_quantity,
             'fulfilled_quantity' => $this->fulfilled_quantity,
 
@@ -20,6 +21,7 @@ class RestockItemResource extends JsonResource
                 'id'   => $this->product->id,
                 'name' => $this->product->name,
             ]),
+            'unit' => $this->whenLoaded('unit', fn () => new UnitResource($this->unit)),
         ];
     }
 }

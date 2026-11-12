@@ -16,4 +16,5 @@ return [
     'selling_price_below_old_batches' => 'Selling price must be greater than the maximum purchase price of existing stock batches (:price).',
     'installment_price_below_purchase' => 'Installment price must be greater than the purchase price (:price).',
     'installment_price_below_old_batches' => 'Installment price must be greater than the maximum purchase price of existing stock batches (:price).',
+    'duplicate_product_unit' => 'The same product cannot appear twice with the same unit.',
 ];

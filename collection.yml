@@ -6769,6 +6769,9 @@ items:
                   - name: items[0][product_id]
                     type: text
                     value: '1'
+                  - name: items[0][unit_id]
+                    type: text
+                    value: '1'
                   - name: items[0][requested_quantity]
                     type: text
                     value: '10'
@@ -6865,7 +6868,13 @@ items:
                   - name: note
                     type: text
                     value: Fulfilled via purchase
+                  - name: items[0][restock_item_id]
+                    type: text
+                    value: '1'
                   - name: items[0][product_id]
+                    type: text
+                    value: '1'
+                  - name: items[0][unit_id]
                     type: text
                     value: '1'
                   - name: items[0][price]
@@ -6910,6 +6919,12 @@ items:
                   - name: note
                     type: text
                     value: Fulfilled via transfer
+                  - name: items[0][restock_item_id]
+                    type: text
+                    value: '1'
+                  - name: items[0][unit_id]
+                    type: text
+                    value: '1'
               auth:
                 type: bearer
                 token: '{{token}}'
@@ -7053,6 +7068,9 @@ items:
                   - name: items[0][product_id]
                     type: text
                     value: '1'
+                  - name: items[0][unit_id]
+                    type: text
+                    value: '1'
                   - name: items[0][requested_quantity]
                     type: text
                     value: '15'
@@ -7128,6 +7146,9 @@ items:
                     type: text
                     value: First purchase order
                   - name: items[0][product_id]
+                    type: text
+                    value: '1'
+                  - name: items[0][unit_id]
                     type: text
                     value: '1'
                   - name: items[0][quantity]
@@ -7248,6 +7269,9 @@ items:
                   - name: inventory_id
                     type: text
                     value: '1'
+                  - name: items[0][purchase_item_id]
+                    type: text
+                    value: '1'
                   - name: items[0][product_id]
                     type: text
                     value: '1'
@@ -7328,6 +7352,9 @@ items:
                     type: text
                     value: Updated purchase order
                   - name: items[0][product_id]
+                    type: text
+                    value: '1'
+                  - name: items[0][unit_id]
                     type: text
                     value: '1'
                   - name: items[0][quantity]

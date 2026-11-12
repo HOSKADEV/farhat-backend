@@ -16,4 +16,5 @@ return [
     'selling_price_below_old_batches' => 'يجب أن يكون سعر البيع أكبر من الحد الأقصى لسعر شراء الدُفعات الموجودة في المخزون (:price).',
     'installment_price_below_purchase' => 'يجب أن يكون سعر التقسيط أكبر من سعر الشراء (:price).',
     'installment_price_below_old_batches' => 'يجب أن يكون سعر التقسيط أكبر من الحد الأقصى لسعر شراء الدُفعات الموجودة في المخزون (:price).',
+    'duplicate_product_unit' => 'لا يمكن تكرار نفس المنتج بنفس الوحدة في عملية الشراء.',
 ];

@@ -18,6 +18,7 @@ class InventoryMovementResource extends JsonResource
             'stock_id'      => $this->stock_id,
             'inventory_id'  => $this->inventory_id,
             'product_id'    => $this->product_id,
+            'unit_id'       => $this->whenLoaded('stock', fn () => $this->stock?->unit_id),
             'source_id'     => $this->source_id,
             'source_type'   => $this->source_type,
             'movement_type' => $this->movement_type,

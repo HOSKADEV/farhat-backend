@@ -8,4 +8,7 @@ return [
     'no_inventory_for_branch' => 'No inventory is available for the selected branch.',
     'invalid_items' => 'Some of the selected items are invalid or no longer available.',
     'no_items' => 'At least one item must be added to the restock request.',
+    'duplicate_product_unit' => 'The same product cannot appear twice with the same unit.',
+    'insufficient_stock_in_source' => 'Insufficient stock for product #:product in the source inventory. Only :available unit(s) available, :requested requested.',
+    'invalid_restock_items' => 'Some of the selected restock items are invalid or no longer available.',
 ];

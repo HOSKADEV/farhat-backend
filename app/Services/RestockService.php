@@ -36,7 +36,7 @@ class RestockService
         $query->byUserBranches();
 
         return QueryBuilder::for($query, $request)
-            ->with(['user', 'branch', 'items.product'])
+            ->with(['user', 'branch', 'items.product', 'items.unit'])
             ->with('fulfilledWith', function ($morphTo) {
                 $morphTo->morphWith([
                     Purchase::class          => ['inventory', 'supplier', 'returns.items.purchaseItem'],
@@ -78,10 +78,13 @@ class RestockService
                 'note'      => $data['note'] ?? null,
             ]);
 
+            $defaultUnitId = null;
+
             foreach ($data['items'] as $item) {
                 RestockItem::create([
-                    'restock_id'   => $restock->id,
+                    'restock_id'         => $restock->id,
                     'product_id'         => $item['product_id'],
+                    'unit_id'            => $item['unit_id'] ?? ($defaultUnitId ??= Unit::defaultId()),
                     'requested_quantity' => $item['requested_quantity'],
                     'fulfilled_quantity' => 0,
                 ]);
@@ -89,13 +92,13 @@ class RestockService
 
             $this->notifyCreated($restock, NotificationType::RESTOCK_CREATED);
 
-            return $restock->load(['user', 'branch', 'items.product']);
+            return $restock->load(['user', 'branch', 'items.product', 'items.unit']);
         });
     }
 
     public function show(Restock $restock): Restock
     {
-        $restock->loadMissing(['user', 'branch', 'items.product', 'fulfilledWith']);
+        $restock->loadMissing(['user', 'branch', 'items.product', 'items.unit', 'fulfilledWith']);
         $restock->loadMorph('fulfilledWith', [
             Purchase::class          => ['inventory', 'supplier', 'returns.items.purchaseItem'],
             InventoryTransfer::class => ['fromInventory', 'toInventory'],
@@ -119,17 +122,20 @@ class RestockService
             if (isset($data['items'])) {
                 $restock->items()->delete();
 
+                $defaultUnitId = null;
+
                 foreach ($data['items'] as $item) {
                     RestockItem::create([
-                        'restock_id'   => $restock->id,
+                        'restock_id'         => $restock->id,
                         'product_id'         => $item['product_id'],
+                        'unit_id'            => $item['unit_id'] ?? ($defaultUnitId ??= Unit::defaultId()),
                         'requested_quantity' => $item['requested_quantity'],
                         'fulfilled_quantity' => 0,
                     ]);
                 }
             }
 
-            return $restock->fresh()->loadMissing(['user', 'branch', 'items.product']);
+            return $restock->fresh()->loadMissing(['user', 'branch', 'items.product', 'items.unit']);
         });
     }
 
@@ -147,7 +153,7 @@ class RestockService
 
     public function submit(Restock $restock): Restock
     {
-        return $restock->fresh()->loadMissing(['user', 'branch', 'items.product']);
+        return $restock->fresh()->loadMissing(['user', 'branch', 'items.product', 'items.unit']);
     }
 
     public function cancel(Restock $restock): Restock
@@ -160,7 +166,7 @@ class RestockService
 
         $this->notifyAction($restock, NotificationType::RESTOCK_CANCELLED, $restock->branch_id);
 
-        return $restock->fresh()->loadMissing(['user', 'branch', 'items.product']);
+        return $restock->fresh()->loadMissing(['user', 'branch', 'items.product', 'items.unit']);
     }
 
     public function fulfill(Restock $restock, array $data): Restock
@@ -187,7 +193,7 @@ class RestockService
 
             $this->notifyAction($restock, NotificationType::RESTOCK_FULFILLED, $restock->branch_id);
 
-            $restock = $restock->fresh()->loadMissing(['user', 'branch', 'items.product', 'fulfilledWith']);
+            $restock = $restock->fresh()->loadMissing(['user', 'branch', 'items.product', 'items.unit', 'fulfilledWith']);
             $restock->loadMorph('fulfilledWith', [
                 Purchase::class          => ['inventory', 'supplier', 'returns.items.purchaseItem'],
                 InventoryTransfer::class => ['fromInventory', 'toInventory'],
@@ -201,8 +207,7 @@ class RestockService
     {
         $restock->loadMissing('branch');
 
-        // Build per-product pricing map from request
-        $pricing = collect($data['items'] ?? [])->keyBy('product_id');
+        $overrides = $this->fulfillmentOverrides($data['items'] ?? []);
 
         $totalAmount = 0;
 
@@ -216,15 +221,20 @@ class RestockService
         ]);
 
         foreach ($restock->items as $restockItem) {
+            $override = $this->overrideFor($overrides, $restockItem);
+
             $quantity = $restockItem->requested_quantity;
-            $price = (float) ($pricing[$restockItem->product_id]['price'] ?? 0);
+            $unitId = (int) ($override['unit_id'] ?? $restockItem->unit_id);
+            $price = (float) ($override['price'] ?? 0);
 
             $totalAmount += $quantity * $price;
 
             $purchase->items()->create([
-                'product_id' => $restockItem->product_id,
-                'quantity'   => $quantity,
-                'price'      => $price,
+                'product_id'      => $restockItem->product_id,
+                'unit_id'         => $unitId,
+                'restock_item_id' => $restockItem->id,
+                'quantity'        => $quantity,
+                'price'           => $price,
             ]);
 
             $restockItem->update([
@@ -252,17 +262,14 @@ class RestockService
 
         $fromInventoryId = $data['from_inventory_id'];
 
-        // Restocks carry no unit yet, so they resolve the default unit's stock.
-        $unitId = Unit::defaultId();
+        $overrides = $this->fulfillmentOverrides($data['items'] ?? []);
 
         // Validate that source inventory has enough stock for all requested items
         foreach ($restock->items as $restockItem) {
             $quantity = $restockItem->requested_quantity;
+            $unitId = $this->resolveUnitId($overrides, $restockItem);
 
-            $fromStock = Stock::where('inventory_id', $fromInventoryId)
-                ->where('product_id', $restockItem->product_id)
-                ->where('unit_id', $unitId)
-                ->first();
+            $fromStock = $this->findSourceStock($fromInventoryId, $restockItem->product_id, $unitId);
 
             $available = $fromStock ? $fromStock->batches()->sum('current_quantity') : 0;
 
@@ -287,16 +294,15 @@ class RestockService
 
         foreach ($restock->items as $restockItem) {
             $quantity = $restockItem->requested_quantity;
+            $unitId = $this->resolveUnitId($overrides, $restockItem);
 
-            $fromStock = Stock::where('inventory_id', $fromInventoryId)
-                ->where('product_id', $restockItem->product_id)
-                ->where('unit_id', $unitId)
-                ->first();
+            $fromStock = $this->findSourceStock($fromInventoryId, $restockItem->product_id, $unitId);
 
             // Create transfer item referencing the source stock
             $transfer->items()->create([
-                'stock_id' => $fromStock?->id,
-                'quantity' => $quantity,
+                'stock_id'        => $fromStock?->id,
+                'restock_item_id' => $restockItem->id,
+                'quantity'        => $quantity,
             ]);
 
             $restockItem->update([
@@ -305,6 +311,53 @@ class RestockService
         }
 
         return $transfer;
+    }
+
+    /**
+     * Index fulfillment overrides by restock line, product + unit, then product.
+     */
+    private function fulfillmentOverrides(array $items): \Illuminate\Support\Collection
+    {
+        $overrides = collect();
+
+        foreach ($items as $line) {
+            if (! empty($line['restock_item_id'])) {
+                $overrides->put('id:' . $line['restock_item_id'], $line);
+            }
+
+            if (! empty($line['product_id'])) {
+                $key = 'product:' . $line['product_id'];
+
+                $overrides->put($key, $line);
+
+                if (! empty($line['unit_id'])) {
+                    $overrides->put($key . ':' . $line['unit_id'], $line);
+                }
+            }
+        }
+
+        return $overrides;
+    }
+
+    private function overrideFor(\Illuminate\Support\Collection $overrides, RestockItem $restockItem): array
+    {
+        return $overrides->get('id:' . $restockItem->id)
+            ?? $overrides->get('product:' . $restockItem->product_id . ':' . $restockItem->unit_id)
+            ?? $overrides->get('product:' . $restockItem->product_id)
+            ?? [];
+    }
+
+    private function resolveUnitId(\Illuminate\Support\Collection $overrides, RestockItem $restockItem): int
+    {
+        return (int) ($this->overrideFor($overrides, $restockItem)['unit_id'] ?? $restockItem->unit_id);
+    }
+
+    private function findSourceStock(int $inventoryId, int $productId, int $unitId): ?Stock
+    {
+        return Stock::where('inventory_id', $inventoryId)
+            ->where('product_id', $productId)
+            ->where('unit_id', $unitId)
+            ->first();
     }
 
     private function fulfillNoAction(Restock $restock): ?Purchase
