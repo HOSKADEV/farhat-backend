@@ -18,7 +18,7 @@ class BulkUpdateUnitConversionsRequest extends FormRequest
             'products.*.product_id'                    => ['required', 'integer', 'distinct', 'exists:products,id'],
             'products.*.base_unit_id'                  => ['required', 'integer', 'exists:units,id'],
             'products.*.unit_conversions'              => ['required', 'array', 'min:1'],
-            'products.*.unit_conversions.*.unit_id'    => ['required', 'integer', 'distinct', 'exists:units,id'],
+            'products.*.unit_conversions.*.unit_id'    => ['required', 'integer', 'exists:units,id'],
             'products.*.unit_conversions.*.factor'     => ['required', 'numeric', 'gt:0'],
         ];
     }
