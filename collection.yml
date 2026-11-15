@@ -8809,9 +8809,12 @@ items:
                   - name: to_unit_id
                     type: text
                     value: '1'
-                  - name: quantity
+                  - name: from_quantity
                     type: text
                     value: '1'
+                  - name: to_quantity
+                    type: text
+                    value: ''
                   - name: unit_cost
                     type: text
                     value: ''

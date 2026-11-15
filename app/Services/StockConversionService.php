@@ -16,7 +16,8 @@ class StockConversionService
 
     /**
      * Manually move stock of one product from one unit to another within the
-     * same inventory, using the product's configured conversion factors.
+     * same inventory. The destination quantity is derived from the product's
+     * conversion factors unless the operator supplies it explicitly.
      */
     public function convert(array $data): StockConversion
     {
@@ -30,7 +31,7 @@ class StockConversionService
                 throw new Exception(__('stock_conversions.same_unit'), 422);
             }
 
-            $fromQuantity = round((float) $data['quantity'], 2);
+            $fromQuantity = round((float) $data['from_quantity'], 2);
 
             if (! $fromUnit->acceptsQuantity($fromQuantity)) {
                 throw new Exception(__('stock_conversions.invalid_source_quantity', [
@@ -41,20 +42,26 @@ class StockConversionService
             $fromFactor = $this->factorFor($product, $fromUnit);
             $toFactor = $this->factorFor($product, $toUnit);
 
-            $exactToQuantity = $fromQuantity * $fromFactor / $toFactor;
+            $explicitToQuantity = $this->explicitQuantity($data['to_quantity'] ?? null);
 
-            if (! $toUnit->acceptsQuantity($exactToQuantity)) {
-                throw new Exception(__('stock_conversions.invalid_destination_quantity', [
-                    'unit' => $toUnit->name,
-                ]), 422);
-            }
+            if ($explicitToQuantity !== null) {
+                $toQuantity = $explicitToQuantity;
 
-            $toQuantity = round($exactToQuantity, 2);
+                $this->assertDestinationQuantity($toQuantity, $toUnit);
+            } else {
+                $exactToQuantity = $fromQuantity
+                    * $this->requireFactor($fromFactor, $product, $fromUnit)
+                    / $this->requireFactor($toFactor, $product, $toUnit);
 
-            if ($toQuantity <= 0) {
-                throw new Exception(__('stock_conversions.invalid_destination_quantity', [
-                    'unit' => $toUnit->name,
-                ]), 422);
+                $this->assertDestinationQuantity($exactToQuantity, $toUnit);
+
+                $toQuantity = round($exactToQuantity, 2);
+
+                if ($toQuantity <= 0) {
+                    throw new Exception(__('stock_conversions.invalid_destination_quantity', [
+                        'unit' => $toUnit->name,
+                    ]), 422);
+                }
             }
 
             $sourceStock = Stock::where('inventory_id', $inventory->id)
@@ -207,11 +214,16 @@ class StockConversionService
         ];
     }
 
-    private function factorFor(Product $product, Unit $unit): float
+    private function factorFor(Product $product, Unit $unit): ?float
     {
         $factor = $product->conversionFactorFor($unit->id);
 
-        if ($factor === null || $factor <= 0) {
+        return $factor !== null && $factor > 0 ? $factor : null;
+    }
+
+    private function requireFactor(?float $factor, Product $product, Unit $unit): float
+    {
+        if ($factor === null) {
             throw new Exception(__('stock_conversions.unit_not_configured', [
                 'product' => $product->name,
                 'unit'    => $unit->name,
@@ -219,5 +231,23 @@ class StockConversionService
         }
 
         return $factor;
+    }
+
+    private function explicitQuantity(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return round((float) $value, 2);
+    }
+
+    private function assertDestinationQuantity(float $quantity, Unit $unit): void
+    {
+        if (! $unit->acceptsQuantity($quantity)) {
+            throw new Exception(__('stock_conversions.invalid_destination_quantity', [
+                'unit' => $unit->name,
+            ]), 422);
+        }
     }
 }

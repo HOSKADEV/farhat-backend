@@ -3,6 +3,7 @@
 use App\Enums\InventoryMovementType;
 use App\Enums\Role as RoleEnum;
 use App\Http\Requests\Web\Product\BulkUpdateUnitConversionsRequest;
+use App\Http\Requests\Web\Stock\ConvertStockRequest;
 use App\Models\Brand;
 use App\Models\Branch;
 use App\Models\Category;
@@ -101,12 +102,12 @@ it('converts stock between units using the product factors', function () {
     $sourceStock = stockWithBatch($this->product, $this->inventory, $this->box, [[2, 1200]]);
 
     $conversion = app(StockConversionService::class)->convert([
-        'inventory_id' => $this->inventory->id,
-        'product_id'   => $this->product->id,
-        'from_unit_id' => $this->box->id,
-        'to_unit_id'   => $this->piece->id,
-        'quantity'     => 1,
-        'note'         => 'Repacked',
+        'inventory_id'  => $this->inventory->id,
+        'product_id'    => $this->product->id,
+        'from_unit_id'  => $this->box->id,
+        'to_unit_id'    => $this->piece->id,
+        'from_quantity' => 1,
+        'note'          => 'Repacked',
     ]);
 
     expect((float) $conversion->from_quantity)->toBe(1.0)
@@ -135,11 +136,11 @@ it('records a paired manual movement for both units', function () {
     stockWithBatch($this->product, $this->inventory, $this->box, [[3, 600]]);
 
     $conversion = app(StockConversionService::class)->convert([
-        'inventory_id' => $this->inventory->id,
-        'product_id'   => $this->product->id,
-        'from_unit_id' => $this->box->id,
-        'to_unit_id'   => $this->piece->id,
-        'quantity'     => 2,
+        'inventory_id'  => $this->inventory->id,
+        'product_id'    => $this->product->id,
+        'from_unit_id'  => $this->box->id,
+        'to_unit_id'    => $this->piece->id,
+        'from_quantity' => 2,
     ]);
 
     $movements = InventoryMovement::where('source_type', StockConversion::class)
@@ -163,11 +164,11 @@ it('consumes the oldest batches first and carries their cost', function () {
     stockWithBatch($this->product, $this->inventory, $this->box, [[1, 1000], [1, 1400]]);
 
     $conversion = app(StockConversionService::class)->convert([
-        'inventory_id' => $this->inventory->id,
-        'product_id'   => $this->product->id,
-        'from_unit_id' => $this->box->id,
-        'to_unit_id'   => $this->piece->id,
-        'quantity'     => 1,
+        'inventory_id'  => $this->inventory->id,
+        'product_id'    => $this->product->id,
+        'from_unit_id'  => $this->box->id,
+        'to_unit_id'    => $this->piece->id,
+        'from_quantity' => 1,
     ]);
 
     expect((float) $conversion->total_cost)->toBe(1000.0)
@@ -178,12 +179,12 @@ it('honours an operator supplied destination unit cost', function () {
     stockWithBatch($this->product, $this->inventory, $this->box, [[1, 1200]]);
 
     $conversion = app(StockConversionService::class)->convert([
-        'inventory_id' => $this->inventory->id,
-        'product_id'   => $this->product->id,
-        'from_unit_id' => $this->box->id,
-        'to_unit_id'   => $this->piece->id,
-        'quantity'     => 1,
-        'unit_cost'    => 150,
+        'inventory_id'  => $this->inventory->id,
+        'product_id'    => $this->product->id,
+        'from_unit_id'  => $this->box->id,
+        'to_unit_id'    => $this->piece->id,
+        'from_quantity' => 1,
+        'unit_cost'     => 150,
     ]);
 
     expect((float) $conversion->unit_cost)->toBe(150.0)
@@ -196,15 +197,78 @@ it('honours an operator supplied destination unit cost', function () {
     expect((float) $destinationStock->batches()->firstOrFail()->purchase_price)->toBe(150.0);
 });
 
+it('bypasses conversion factors when an explicit destination quantity is given', function () {
+    $pallet = Unit::create(['name' => 'Pallet', 'symbol' => 'plt']);
+    stockWithBatch($this->product, $this->inventory, $this->box, [[2, 1200]]);
+
+    $conversion = app(StockConversionService::class)->convert([
+        'inventory_id'  => $this->inventory->id,
+        'product_id'    => $this->product->id,
+        'from_unit_id'  => $this->box->id,
+        'to_unit_id'    => $pallet->id,
+        'from_quantity' => 1,
+        'to_quantity'   => 7,
+    ]);
+
+    expect((float) $conversion->from_quantity)->toBe(1.0)
+        ->and((float) $conversion->to_quantity)->toBe(7.0)
+        ->and((float) $conversion->from_factor)->toBe(12.0)
+        ->and($conversion->to_factor)->toBeNull()
+        ->and((float) $conversion->unit_cost)->toBe(171.43)
+        ->and((float) $conversion->total_cost)->toBe(1200.0);
+
+    $destinationStock = Stock::where('unit_id', $pallet->id)
+        ->where('product_id', $this->product->id)
+        ->firstOrFail();
+
+    expect(round((float) $destinationStock->batches()->sum('current_quantity'), 2))->toBe(7.0);
+});
+
+it('prefers an explicit destination quantity over the configured factors', function () {
+    stockWithBatch($this->product, $this->inventory, $this->box, [[1, 1200]]);
+
+    $conversion = app(StockConversionService::class)->convert([
+        'inventory_id'  => $this->inventory->id,
+        'product_id'    => $this->product->id,
+        'from_unit_id'  => $this->box->id,
+        'to_unit_id'    => $this->piece->id,
+        'from_quantity' => 1,
+        'to_quantity'   => 10,
+    ]);
+
+    expect((float) $conversion->to_quantity)->toBe(10.0)
+        ->and((float) $conversion->from_factor)->toBe(12.0)
+        ->and((float) $conversion->to_factor)->toBe(1.0);
+
+    $destinationStock = Stock::where('unit_id', $this->piece->id)
+        ->where('product_id', $this->product->id)
+        ->firstOrFail();
+
+    expect(round((float) $destinationStock->batches()->sum('current_quantity'), 2))->toBe(10.0);
+});
+
+it('rejects an explicit destination quantity that breaks the unit precision', function () {
+    stockWithBatch($this->product, $this->inventory, $this->piece, [[10, 100]]);
+
+    expect(fn () => app(StockConversionService::class)->convert([
+        'inventory_id'  => $this->inventory->id,
+        'product_id'    => $this->product->id,
+        'from_unit_id'  => $this->piece->id,
+        'to_unit_id'    => $this->box->id,
+        'from_quantity' => 1,
+        'to_quantity'   => 1.5,
+    ]))->toThrow(\Exception::class, __('stock_conversions.invalid_destination_quantity', ['unit' => 'Box']));
+});
+
 it('supports fractional quantities for units that allow decimals', function () {
     stockWithBatch($this->weight, $this->inventory, $this->kilo, [[1, 500]]);
 
     $conversion = app(StockConversionService::class)->convert([
-        'inventory_id' => $this->inventory->id,
-        'product_id'   => $this->weight->id,
-        'from_unit_id' => $this->kilo->id,
-        'to_unit_id'   => $this->gram->id,
-        'quantity'     => 0.25,
+        'inventory_id'  => $this->inventory->id,
+        'product_id'    => $this->weight->id,
+        'from_unit_id'  => $this->kilo->id,
+        'to_unit_id'    => $this->gram->id,
+        'from_quantity' => 0.25,
     ]);
 
     expect((float) $conversion->to_quantity)->toBe(250.0);
@@ -220,11 +284,11 @@ it('rejects a fractional source quantity for a whole number unit', function () {
     stockWithBatch($this->product, $this->inventory, $this->box, [[2, 1200]]);
 
     expect(fn () => app(StockConversionService::class)->convert([
-        'inventory_id' => $this->inventory->id,
-        'product_id'   => $this->product->id,
-        'from_unit_id' => $this->box->id,
-        'to_unit_id'   => $this->piece->id,
-        'quantity'     => 0.5,
+        'inventory_id'  => $this->inventory->id,
+        'product_id'    => $this->product->id,
+        'from_unit_id'  => $this->box->id,
+        'to_unit_id'    => $this->piece->id,
+        'from_quantity' => 0.5,
     ]))->toThrow(\Exception::class, __('stock_conversions.invalid_source_quantity', ['unit' => 'Box']));
 });
 
@@ -232,11 +296,11 @@ it('rejects a conversion that would leave a fractional destination quantity', fu
     stockWithBatch($this->product, $this->inventory, $this->piece, [[5, 100]]);
 
     expect(fn () => app(StockConversionService::class)->convert([
-        'inventory_id' => $this->inventory->id,
-        'product_id'   => $this->product->id,
-        'from_unit_id' => $this->piece->id,
-        'to_unit_id'   => $this->box->id,
-        'quantity'     => 1,
+        'inventory_id'  => $this->inventory->id,
+        'product_id'    => $this->product->id,
+        'from_unit_id'  => $this->piece->id,
+        'to_unit_id'    => $this->box->id,
+        'from_quantity' => 1,
     ]))->toThrow(\Exception::class, __('stock_conversions.invalid_destination_quantity', ['unit' => 'Box']));
 });
 
@@ -245,11 +309,11 @@ it('rejects conversions with insufficient stock and leaves stock untouched', fun
 
     try {
         app(StockConversionService::class)->convert([
-            'inventory_id' => $this->inventory->id,
-            'product_id'   => $this->product->id,
-            'from_unit_id' => $this->box->id,
-            'to_unit_id'   => $this->piece->id,
-            'quantity'     => 2,
+            'inventory_id'  => $this->inventory->id,
+            'product_id'    => $this->product->id,
+            'from_unit_id'  => $this->box->id,
+            'to_unit_id'    => $this->piece->id,
+            'from_quantity' => 2,
         ]);
     } catch (\Exception $e) {
         expect($e->getCode())->toBe(422);
@@ -265,11 +329,11 @@ it('rejects a unit without a configured factor', function () {
     stockWithBatch($this->product, $this->inventory, $this->box, [[1, 1200]]);
 
     expect(fn () => app(StockConversionService::class)->convert([
-        'inventory_id' => $this->inventory->id,
-        'product_id'   => $this->product->id,
-        'from_unit_id' => $this->box->id,
-        'to_unit_id'   => $pallet->id,
-        'quantity'     => 1,
+        'inventory_id'  => $this->inventory->id,
+        'product_id'    => $this->product->id,
+        'from_unit_id'  => $this->box->id,
+        'to_unit_id'    => $pallet->id,
+        'from_quantity' => 1,
     ]))->toThrow(\Exception::class, __('stock_conversions.unit_not_configured', [
         'product' => 'Product',
         'unit'    => 'Pallet',
@@ -280,11 +344,11 @@ it('rejects converting a unit into itself', function () {
     stockWithBatch($this->product, $this->inventory, $this->box, [[1, 1200]]);
 
     expect(fn () => app(StockConversionService::class)->convert([
-        'inventory_id' => $this->inventory->id,
-        'product_id'   => $this->product->id,
-        'from_unit_id' => $this->box->id,
-        'to_unit_id'   => $this->box->id,
-        'quantity'     => 1,
+        'inventory_id'  => $this->inventory->id,
+        'product_id'    => $this->product->id,
+        'from_unit_id'  => $this->box->id,
+        'to_unit_id'    => $this->box->id,
+        'from_quantity' => 1,
     ]))->toThrow(\Exception::class, __('stock_conversions.same_unit'));
 });
 
@@ -424,15 +488,42 @@ it('validates bulk unit conversion payloads', function () {
         ->and($validator->errors()->keys())->toContain('products.0.unit_conversions.1.unit_id');
 });
 
+it('validates the convert stock payload', function () {
+    $valid = ConvertStockRequest::create('/v1/stocks/convert', 'POST', [
+        'inventory_id'  => $this->inventory->id,
+        'product_id'    => $this->product->id,
+        'from_unit_id'  => $this->box->id,
+        'to_unit_id'    => $this->piece->id,
+        'from_quantity' => 1,
+        'to_quantity'   => 12,
+    ]);
+
+    expect(Validator::make($valid->all(), $valid->rules())->passes())->toBeTrue();
+
+    $invalid = ConvertStockRequest::create('/v1/stocks/convert', 'POST', [
+        'inventory_id'  => $this->inventory->id,
+        'product_id'    => $this->product->id,
+        'from_unit_id'  => $this->box->id,
+        'to_unit_id'    => $this->piece->id,
+        'from_quantity' => 0,
+        'to_quantity'   => 0,
+    ]);
+
+    $validator = Validator::make($invalid->all(), $invalid->rules());
+
+    expect($validator->passes())->toBeFalse()
+        ->and($validator->errors()->keys())->toContain('from_quantity', 'to_quantity');
+});
+
 it('renders the conversion with its product, units and movements', function () {
     stockWithBatch($this->product, $this->inventory, $this->box, [[2, 1200]]);
 
     $conversion = app(StockConversionService::class)->convert([
-        'inventory_id' => $this->inventory->id,
-        'product_id'   => $this->product->id,
-        'from_unit_id' => $this->box->id,
-        'to_unit_id'   => $this->piece->id,
-        'quantity'     => 1,
+        'inventory_id'  => $this->inventory->id,
+        'product_id'    => $this->product->id,
+        'from_unit_id'  => $this->box->id,
+        'to_unit_id'    => $this->piece->id,
+        'from_quantity' => 1,
     ]);
 
     $payload = (new \App\Http\Resources\Web\StockConversionResource(
@@ -446,4 +537,26 @@ it('renders the conversion with its product, units and movements', function () {
         ->and($payload['to_unit']['symbol'])->toBe($this->piece->symbol)
         ->and($payload['product']['name'])->toBe('Product')
         ->and($payload['movements'])->toHaveCount(2);
+});
+
+it('renders null factors for a conversion that bypassed them', function () {
+    $pallet = Unit::create(['name' => 'Pallet', 'symbol' => 'plt']);
+    stockWithBatch($this->product, $this->inventory, $this->box, [[1, 1200]]);
+
+    $conversion = app(StockConversionService::class)->convert([
+        'inventory_id'  => $this->inventory->id,
+        'product_id'    => $this->product->id,
+        'from_unit_id'  => $this->box->id,
+        'to_unit_id'    => $pallet->id,
+        'from_quantity' => 1,
+        'to_quantity'   => 7,
+    ]);
+
+    $payload = (new \App\Http\Resources\Web\StockConversionResource(
+        $conversion->load(['inventory', 'product', 'fromStock.unit', 'toStock.unit', 'fromUnit', 'toUnit', 'movements']),
+    ))->resolve();
+
+    expect((float) $payload['from_factor'])->toBe(12.0)
+        ->and($payload['to_factor'])->toBeNull()
+        ->and($payload['to_quantity'])->toBe(7.0);
 });

@@ -14,13 +14,14 @@ class ConvertStockRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'inventory_id' => ['required', 'integer', 'exists:inventories,id'],
-            'product_id'   => ['required', 'integer', 'exists:products,id'],
-            'from_unit_id' => ['required', 'integer', 'exists:units,id'],
-            'to_unit_id'   => ['required', 'integer', 'different:from_unit_id', 'exists:units,id'],
-            'quantity'     => ['required', 'numeric', 'gt:0'],
-            'unit_cost'    => ['nullable', 'numeric', 'min:0'],
-            'note'         => ['nullable', 'string', 'max:2000'],
+            'inventory_id'  => ['required', 'integer', 'exists:inventories,id'],
+            'product_id'    => ['required', 'integer', 'exists:products,id'],
+            'from_unit_id'  => ['required', 'integer', 'exists:units,id'],
+            'to_unit_id'    => ['required', 'integer', 'different:from_unit_id', 'exists:units,id'],
+            'from_quantity' => ['required', 'numeric', 'gt:0'],
+            'to_quantity'   => ['nullable', 'numeric', 'gt:0'],
+            'unit_cost'     => ['nullable', 'numeric', 'min:0'],
+            'note'          => ['nullable', 'string', 'max:2000'],
         ];
     }
 }
